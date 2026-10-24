@@ -1,0 +1,130 @@
+<header class="page-heading">
+  <div>
+    <p class="eyebrow">GESTIÓN ACADÉMICA</p>
+    <h1>{{ definition.title }}</h1>
+    <p class="muted">{{ definition.description }}</p>
+  </div>
+  <button
+    type="button"
+    class="button button-primary"
+    [disabled]="loading || !!error"
+    (click)="open()"
+  >
+    <app-icon name="plus"></app-icon>Agregar {{ definition.singular }}
+  </button>
+</header>
+<app-feedback [message]="success" kind="success"></app-feedback>
+<app-feedback [message]="error" kind="error" [retry]="true" (retryClick)="load()"></app-feedback>
+<div *ngIf="loading" class="loading-state" role="status">
+  <span class="spinner"></span>Cargando {{ definition.title.toLowerCase() }}…
+</div>
+<section class="panel" *ngIf="!loading && !error">
+  <div class="table-toolbar">
+    <div class="search-input">
+      <app-icon name="search"></app-icon
+      ><input
+        type="search"
+        [(ngModel)]="search"
+        placeholder="Buscar en {{ definition.title.toLowerCase() }}"
+        aria-label="Buscar registros"
+      />
+    </div>
+    <span class="record-count">{{ filtered.length }} de {{ records.length }} registros</span>
+  </div>
+  <div class="table-scroll" *ngIf="filtered.length; else empty">
+    <table>
+      <thead>
+        <tr>
+          <th *ngFor="let column of definition.columns">{{ column.label }}</th>
+          <th class="actions-column">Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let record of filtered">
+          <td *ngFor="let column of definition.columns">
+            <span
+              *ngIf="column.key === 'estado'; else text"
+              class="badge"
+              [class.badge-muted]="inactive(record)"
+              >{{ display(record, column.key) }}</span
+            ><ng-template #text>{{ display(record, column.key) }}</ng-template>
+          </td>
+          <td>
+            <div class="row-actions">
+              <button
+                type="button"
+                class="icon-button"
+                aria-label="Editar registro"
+                title="Editar"
+                (click)="open(record)"
+              >
+                <app-icon name="edit"></app-icon></button
+              ><button
+                type="button"
+                class="icon-button danger"
+                aria-label="Eliminar registro"
+                title="Eliminar"
+                (click)="deleting = record; modalError = ''"
+              >
+                <app-icon name="trash"></app-icon>
+              </button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <ng-template #empty
+    ><div class="empty-state">
+      <app-icon [name]="definition.icon"></app-icon>
+      <h2>{{ search ? 'No encontramos coincidencias' : 'Todavía no hay registros' }}</h2>
+      <p>
+        {{
+          search
+            ? 'Prueba con otro término de búsqueda.'
+            : 'Agrega el primer registro para continuar con la planeación.'
+        }}
+      </p>
+    </div></ng-template
+  >
+</section>
+<app-dialog
+  *ngIf="formOpen"
+  [title]="(editing ? 'Editar ' : 'Agregar ') + definition.singular"
+  [wide]="true"
+  [busy]="busy"
+  (close)="formOpen = false"
+>
+  <app-feedback [message]="modalError" kind="error"></app-feedback>
+  <app-registro-form
+    [fields]="fields"
+    [value]="value"
+    [busy]="busy"
+    (save)="save($event)"
+    (cancel)="formOpen = false"
+  ></app-registro-form>
+</app-dialog>
+<app-dialog
+  *ngIf="deleting"
+  [title]="'Eliminar ' + definition.singular"
+  [busy]="busy"
+  (close)="deleting = null"
+>
+  <p>
+    Esta acción eliminará el registro. Si tiene información relacionada, el sistema puede impedir su
+    eliminación.
+  </p>
+  <app-feedback [message]="modalError" kind="error"></app-feedback>
+  <div class="dialog-actions">
+    <button
+      type="button"
+      class="button button-secondary"
+      [disabled]="busy"
+      (click)="deleting = null"
+    >
+      Cancelar</button
+    ><button type="button" class="button button-danger" [disabled]="busy" (click)="remove()">
+      {{ busy ? 'Eliminando…' : 'Eliminar registro' }}
+    </button>
+  </div>
+</app-dialog>

@@ -1,0 +1,139 @@
+<header class="page-heading">
+  <div>
+    <p class="eyebrow">PLANEACIÓN ACADÉMICA</p>
+    <h1>Una semana bien organizada</h1>
+    <p class="muted">Consulta la programación y prepara los próximos horarios.</p>
+  </div>
+  <a routerLink="/horarios" class="button button-primary"
+    ><app-icon name="calendar"></app-icon>Gestionar horarios</a
+  >
+</header>
+<app-feedback [message]="error" kind="error" [retry]="true" (retryClick)="load()"></app-feedback>
+<div *ngIf="loading" class="loading-state" role="status">
+  <span class="spinner"></span>Cargando planeación académica…
+</div>
+<ng-container *ngIf="!loading && !error && data">
+  <section class="stats-strip" aria-label="Resumen de datos actuales">
+    <a routerLink="/docentes" class="stat-item"
+      ><span class="stat-icon"><app-icon name="users"></app-icon></span>
+      <div>
+        <p>Docentes activos</p>
+        <strong>{{ docentesActivos }}</strong
+        ><small>Registrados en el programa</small>
+      </div>
+      <app-icon name="chevron"></app-icon></a
+    ><a routerLink="/grupos" class="stat-item"
+      ><span class="stat-icon stat-teal"><app-icon name="layers"></app-icon></span>
+      <div>
+        <p>Grupos activos</p>
+        <strong>{{ gruposActivos }}</strong
+        ><small>Disponibles para planeación</small>
+      </div>
+      <app-icon name="chevron"></app-icon></a
+    ><a routerLink="/horarios" class="stat-item"
+      ><span class="stat-icon stat-gold"><app-icon name="clock"></app-icon></span>
+      <div>
+        <p>Sesiones programadas</p>
+        <strong>{{ sesionesProgramadas }}</strong
+        ><small>En el horario actual</small>
+      </div>
+      <app-icon name="chevron"></app-icon
+    ></a>
+  </section>
+  <div class="planning-layout">
+    <section class="panel calendar-panel">
+      <header class="panel-heading">
+        <div>
+          <h2>Horario semanal</h2>
+          <p class="hint">
+            {{ groupFilter ? 'Sesiones del grupo seleccionado' : 'Vista general de los grupos' }}
+          </p>
+        </div>
+        <select aria-label="Filtrar horario por grupo" [(ngModel)]="groupFilter">
+          <option [ngValue]="0">Todos los grupos</option>
+          <option *ngFor="let g of data.grupos" [ngValue]="g.idGrupo">
+            Grupo {{ g.numeroGrupo }} · #{{ g.idGrupo }}
+          </option>
+        </select>
+      </header>
+      <app-semana
+        [data]="data"
+        [sessions]="sessions"
+        (selectSession)="abrirSesion($event)"
+      ></app-semana>
+      <footer class="panel-bottom">
+        <span class="legend-dot"></span>Sesiones programadas<span class="calendar-note"
+          >Lunes a sábado</span
+        >
+      </footer>
+    </section>
+    <aside class="planning-aside">
+      <section class="panel side-panel">
+        <p class="eyebrow">AVANCE DE PROGRAMACIÓN</p>
+        <div class="progress-heading">
+          <strong
+            >{{ completos }} <span>/ {{ gruposActivos }}</span></strong
+          ><span>{{ progress }}%</span>
+        </div>
+        <div
+          class="progress-track"
+          role="progressbar"
+          aria-label="Grupos con sesiones completas"
+          [attr.aria-valuenow]="progress"
+          aria-valuemin="0"
+          aria-valuemax="100"
+        >
+          <span [style.width.%]="progress"></span>
+        </div>
+        <p class="hint">Grupos activos con sus sesiones semanales completas.</p>
+      </section>
+      <section class="panel side-panel">
+        <h2>Antes de generar</h2>
+        <ul class="readiness-list">
+          <li>
+            <app-icon [name]="data.configuracion ? 'check' : 'alert'"></app-icon
+            ><a routerLink="/configuracion">{{
+              data.configuracion ? 'Franjas configuradas' : 'Configura las franjas'
+            }}</a>
+          </li>
+          <li>
+            <app-icon [name]="data.asignaturas.length ? 'check' : 'alert'"></app-icon
+            ><a routerLink="/asignaturas">{{ data.asignaturas.length }} asignaturas registradas</a>
+          </li>
+          <li>
+            <app-icon [name]="sinDocente ? 'alert' : 'check'"></app-icon
+            ><a routerLink="/grupos">{{
+              sinDocente
+                ? sinDocente + (sinDocente === 1 ? ' grupo sin docente' : ' grupos sin docente')
+                : 'Asignaciones de grupos completas'
+            }}</a>
+          </li>
+        </ul>
+        <a
+          routerLink="/horarios"
+          [queryParams]="{ generar: 1 }"
+          class="button button-secondary full-width"
+          >Generar horario<app-icon name="arrow"></app-icon
+        ></a>
+      </section>
+      <section class="panel side-panel">
+        <div class="section-inline">
+          <h2>Validaciones</h2>
+          <span class="badge" [class.badge-warning]="observaciones.length > 0">{{
+            observaciones.length
+          }}</span>
+        </div>
+        <p class="muted">
+          {{
+            observaciones.length
+              ? 'Hay observaciones en las sesiones actuales.'
+              : 'Sin observaciones en las sesiones consultadas.'
+          }}
+        </p>
+        <a routerLink="/validaciones" class="text-button"
+          >Revisar programación<app-icon name="arrow"></app-icon
+        ></a>
+      </section>
+    </aside>
+  </div>
+</ng-container>

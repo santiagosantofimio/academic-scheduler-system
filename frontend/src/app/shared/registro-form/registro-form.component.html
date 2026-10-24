@@ -1,0 +1,67 @@
+<form [formGroup]="form" (ngSubmit)="enviar()" novalidate>
+  <div class="form-grid">
+    <div
+      *ngFor="let field of fields"
+      class="field"
+      [class.field-full]="field.full"
+      [class.field-checkbox]="field.type === 'checkbox'"
+    >
+      <label [for]="'campo-' + field.key"
+        >{{ field.label
+        }}<span *ngIf="field.required" class="required" aria-hidden="true"> *</span></label
+      >
+      <ng-container [ngSwitch]="field.type">
+        <select
+          *ngSwitchCase="'select'"
+          [id]="'campo-' + field.key"
+          [formControlName]="field.key"
+          [attr.aria-required]="field.required || null"
+        >
+          <option [ngValue]="null">
+            {{ field.required ? 'Selecciona una opción' : 'Sin asignar' }}
+          </option>
+          <option *ngFor="let option of field.options" [ngValue]="option.value">
+            {{ option.label }}
+          </option>
+        </select>
+        <textarea
+          *ngSwitchCase="'textarea'"
+          [id]="'campo-' + field.key"
+          [formControlName]="field.key"
+          rows="3"
+          maxlength="255"
+        ></textarea>
+        <input
+          *ngSwitchCase="'checkbox'"
+          type="checkbox"
+          [id]="'campo-' + field.key"
+          [formControlName]="field.key"
+        />
+        <input
+          *ngSwitchDefault
+          [type]="field.type || 'text'"
+          [id]="'campo-' + field.key"
+          [formControlName]="field.key"
+          [attr.min]="field.min ?? null"
+          [attr.max]="field.max ?? null"
+          [attr.step]="field.type === 'number' ? 1 : null"
+          [attr.autocomplete]="field.type === 'password' ? 'new-password' : 'off'"
+          [attr.aria-required]="field.required || null"
+        />
+      </ng-container>
+      <small class="hint" *ngIf="field.hint">{{ field.hint }}</small>
+      <app-field-error [control]="form.get(field.key)"></app-field-error>
+    </div>
+  </div>
+  <p class="field-error" *ngIf="form.errors?.['dateOrder'] && form.touched">
+    La fecha final debe ser igual o posterior a la inicial.
+  </p>
+  <div class="dialog-actions">
+    <button type="button" class="button button-secondary" [disabled]="busy" (click)="cancel.emit()">
+      Cancelar
+    </button>
+    <button type="submit" class="button button-primary" [disabled]="busy">
+      <span *ngIf="busy" class="spinner"></span>{{ busy ? 'Guardando…' : submitLabel }}
+    </button>
+  </div>
+</form>
