@@ -1,0 +1,87 @@
+<a class="skip-link" href="#contenido">Saltar al contenido</a>
+<div class="app-layout" *ngIf="auth.usuario as usuario">
+  <button
+    *ngIf="mobileMenu"
+    class="nav-backdrop"
+    aria-label="Cerrar menú"
+    (click)="mobileMenu = false"
+  ></button>
+  <aside class="sidebar" [class.sidebar-open]="mobileMenu" aria-label="Menú principal">
+    <a class="sidebar-brand" [routerLink]="usuario.rol === 'ADMINISTRADOR' ? '/inicio' : '/cuenta'"
+      ><span class="brand-mark"><img src="assets/sis-gen.png" alt="SIS GEN" /></span
+      ><span class="brand-caption">Gestión de horarios académicos</span></a
+    >
+    <ng-container *ngIf="usuario.rol === 'ADMINISTRADOR'; else docenteMenu">
+      <p class="nav-label">PLANEACIÓN ACADÉMICA</p>
+      <nav>
+        <a
+          *ngFor="let item of navigation"
+          [routerLink]="item.path"
+          routerLinkActive="nav-active"
+          [routerLinkActiveOptions]="{ exact: item.path === '/inicio' }"
+          (click)="mobileMenu = false"
+          ><app-icon [name]="item.icon"></app-icon><span>{{ item.label }}</span></a
+        >
+      </nav>
+      <p class="nav-label nav-label-secondary">ADMINISTRACIÓN</p>
+      <nav>
+        <a
+          *ngFor="let item of administration"
+          [routerLink]="item.path"
+          routerLinkActive="nav-active"
+          (click)="mobileMenu = false"
+          ><app-icon [name]="item.icon"></app-icon><span>{{ item.label }}</span></a
+        >
+      </nav>
+    </ng-container>
+    <ng-template #docenteMenu
+      ><p class="nav-label">MI CUENTA</p>
+      <nav>
+        <a routerLink="/cuenta" routerLinkActive="nav-active" (click)="mobileMenu = false"
+          ><app-icon name="users"></app-icon><span>Mi acceso</span></a
+        >
+      </nav></ng-template
+    >
+    <div class="sidebar-institution">
+      <span class="institution-line"></span><strong>Universidad El Bosque</strong
+      ><span>Ingeniería de Sistemas</span>
+    </div>
+  </aside>
+  <div class="app-main">
+    <header class="topbar">
+      <div class="topbar-program">
+        <button
+          type="button"
+          class="icon-button mobile-menu-button"
+          aria-label="Abrir menú"
+          [attr.aria-expanded]="mobileMenu"
+          (click)="mobileMenu = !mobileMenu"
+        >
+          <app-icon name="menu"></app-icon>
+        </button>
+        <span>Ingeniería de Sistemas</span><span class="topbar-separator">/</span
+        ><span class="muted">SIS GEN</span>
+      </div>
+      <div class="topbar-user">
+        <span class="user-avatar">{{ initials }}</span>
+        <div>
+          <strong>{{ usuario.rol === 'ADMINISTRADOR' ? 'Administrador' : 'Docente' }}</strong
+          ><span class="user-name">{{ usuario.nombre }}</span>
+        </div>
+        <button
+          type="button"
+          class="icon-button logout-button"
+          aria-label="Cerrar sesión"
+          title="Cerrar sesión"
+          (click)="salir()"
+        >
+          <app-icon name="logout"></app-icon>
+        </button>
+      </div>
+    </header>
+    <main id="contenido" class="page-content" tabindex="-1"><router-outlet></router-outlet></main>
+    <footer class="app-footer">
+      <span>SIS GEN · Sistema de horarios académicos</span><span>Universidad El Bosque</span>
+    </footer>
+  </div>
+</div>

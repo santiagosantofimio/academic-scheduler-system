@@ -1,0 +1,217 @@
+<a routerLink="/docentes" class="back-link"><app-icon name="back"></app-icon>Volver a docentes</a>
+<app-feedback [message]="error" kind="error" [retry]="true" (retryClick)="load()"></app-feedback
+><app-feedback [message]="success" kind="success"></app-feedback>
+<div *ngIf="loading" class="loading-state" role="status">
+  <span class="spinner"></span>Cargando ficha del docente…
+</div>
+<ng-container *ngIf="!loading && !error && docente">
+  <header class="page-heading">
+    <div>
+      <p class="eyebrow">FICHA DEL DOCENTE</p>
+      <h1>{{ docente.nombre }} {{ docente.apellido }}</h1>
+      <p class="muted">{{ docente.correoInstitucional }}</p>
+    </div>
+    <span class="badge" [class.badge-muted]="!docente.estado">{{
+      docente.estado ? 'Activo' : 'Inactivo'
+    }}</span>
+  </header>
+  <section class="panel profile-details">
+    <dl>
+      <div>
+        <dt>Documento</dt>
+        <dd>{{ docente.numeroDocumento }}</dd>
+      </div>
+      <div>
+        <dt>Vinculación</dt>
+        <dd>{{ etiqueta(docente.tipoVinculacion) }}</dd>
+      </div>
+      <div>
+        <dt>Especialidad</dt>
+        <dd>{{ docente.especialidad }}</dd>
+      </div>
+      <div>
+        <dt>Escalafón</dt>
+        <dd>{{ docente.escalafon }}</dd>
+      </div>
+      <div>
+        <dt>Capacidad semanal</dt>
+        <dd>{{ docente.horasMaximasDocenciaSemanal }} horas</dd>
+      </div>
+    </dl>
+  </section>
+  <div class="section-toolbar">
+    <div class="tabs" role="tablist" aria-label="Información profesional">
+      <button
+        type="button"
+        role="tab"
+        [attr.aria-selected]="tab === 'formacion'"
+        [class.tab-active]="tab === 'formacion'"
+        (click)="tab = 'formacion'"
+      >
+        <app-icon name="graduation"></app-icon>Formación académica
+        <span>{{ formaciones.length }}</span></button
+      ><button
+        type="button"
+        role="tab"
+        [attr.aria-selected]="tab === 'experiencia'"
+        [class.tab-active]="tab === 'experiencia'"
+        (click)="tab = 'experiencia'"
+      >
+        <app-icon name="briefcase"></app-icon>Experiencia <span>{{ experiencias.length }}</span>
+      </button>
+    </div>
+    <button type="button" class="button button-primary" (click)="open()">
+      <app-icon name="plus"></app-icon
+      >{{ tab === 'formacion' ? 'Agregar formación' : 'Agregar experiencia' }}
+    </button>
+  </div>
+  <section class="panel" *ngIf="tab === 'formacion'">
+    <div class="table-scroll" *ngIf="formaciones.length; else emptyFormacion">
+      <table>
+        <thead>
+          <tr>
+            <th>Título</th>
+            <th>Nivel</th>
+            <th>Institución</th>
+            <th>Área</th>
+            <th>Año</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let f of formaciones">
+            <td class="table-name">{{ f.tituloObtenido }}</td>
+            <td>{{ etiqueta(f.nivelFormacion) }}</td>
+            <td>{{ f.institucion }}</td>
+            <td>{{ f.areaConocimiento }}</td>
+            <td>{{ f.anioGraduacion }}</td>
+            <td>
+              <div class="row-actions">
+                <button
+                  type="button"
+                  class="icon-button"
+                  aria-label="Editar formación"
+                  (click)="open(f)"
+                >
+                  <app-icon name="edit"></app-icon></button
+                ><button
+                  type="button"
+                  class="icon-button danger"
+                  aria-label="Eliminar formación"
+                  (click)="deleting = f; modalError = ''"
+                >
+                  <app-icon name="trash"></app-icon>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <ng-template #emptyFormacion
+      ><div class="empty-state">
+        <app-icon name="graduation"></app-icon>
+        <h2>Sin formación registrada</h2>
+        <p>Agrega los títulos académicos del docente.</p>
+      </div></ng-template
+    >
+  </section>
+  <section class="panel" *ngIf="tab === 'experiencia'">
+    <div class="table-scroll" *ngIf="experiencias.length; else emptyExperiencia">
+      <table>
+        <thead>
+          <tr>
+            <th>Experiencia</th>
+            <th>Cargo e institución</th>
+            <th>Área</th>
+            <th>Periodo</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let e of experiencias">
+            <td>
+              {{ etiqueta(e.tipoExperiencia)
+              }}<small class="table-secondary">{{ e.descripcion }}</small>
+            </td>
+            <td class="table-name">
+              {{ e.cargo }}<small class="table-secondary">{{ e.institucion }}</small>
+            </td>
+            <td>{{ e.areaConocimiento }}</td>
+            <td>
+              {{ e.fechaInicio | date: 'dd/MM/yyyy' : 'UTC' }} –
+              {{ e.fechaFin ? (e.fechaFin | date: 'dd/MM/yyyy' : 'UTC') : 'Actualidad' }}
+            </td>
+            <td>
+              <div class="row-actions">
+                <button
+                  type="button"
+                  class="icon-button"
+                  aria-label="Editar experiencia"
+                  (click)="open(e)"
+                >
+                  <app-icon name="edit"></app-icon></button
+                ><button
+                  type="button"
+                  class="icon-button danger"
+                  aria-label="Eliminar experiencia"
+                  (click)="deleting = e; modalError = ''"
+                >
+                  <app-icon name="trash"></app-icon>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <ng-template #emptyExperiencia
+      ><div class="empty-state">
+        <app-icon name="briefcase"></app-icon>
+        <h2>Sin experiencia registrada</h2>
+        <p>Agrega la experiencia laboral, docente o investigativa.</p>
+      </div></ng-template
+    >
+  </section>
+</ng-container>
+<app-dialog
+  *ngIf="formOpen"
+  [title]="
+    (editing ? 'Editar ' : 'Agregar ') +
+    (tab === 'formacion' ? 'formación académica' : 'experiencia')
+  "
+  [wide]="true"
+  [busy]="busy"
+  (close)="formOpen = false"
+  ><app-feedback [message]="modalError" kind="error"></app-feedback
+  ><app-registro-form
+    [fields]="fields"
+    [value]="value"
+    [busy]="busy"
+    (save)="save($event)"
+    (cancel)="formOpen = false"
+  ></app-registro-form
+></app-dialog>
+<app-dialog
+  *ngIf="deleting"
+  title="Eliminar registro profesional"
+  [busy]="busy"
+  (close)="deleting = null"
+  ><p>
+    Esta acción puede afectar el cumplimiento de los requisitos académicos del docente. El sistema
+    comprobará sus asignaciones antes de permitirla.
+  </p>
+  <app-feedback [message]="modalError" kind="error"></app-feedback>
+  <div class="dialog-actions">
+    <button
+      type="button"
+      class="button button-secondary"
+      [disabled]="busy"
+      (click)="deleting = null"
+    >
+      Cancelar</button
+    ><button type="button" class="button button-danger" [disabled]="busy" (click)="remove()">
+      {{ busy ? 'Eliminando…' : 'Eliminar registro' }}
+    </button>
+  </div></app-dialog
+>
