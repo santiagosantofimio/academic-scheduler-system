@@ -1,0 +1,144 @@
+<header class="page-heading">
+  <div>
+    <p class="eyebrow">GESTIÓN ACADÉMICA</p>
+    <h1>Docentes</h1>
+    <p class="muted">Información profesional, vinculación y capacidad de docencia.</p>
+  </div>
+  <button
+    type="button"
+    class="button button-primary"
+    [disabled]="loading || !!error"
+    (click)="open()"
+  >
+    <app-icon name="plus"></app-icon>Agregar docente
+  </button>
+</header>
+<app-feedback [message]="success" kind="success"></app-feedback
+><app-feedback [message]="error" kind="error" [retry]="true" (retryClick)="load()"></app-feedback>
+<div *ngIf="loading" class="loading-state" role="status">
+  <span class="spinner"></span>Cargando docentes…
+</div>
+<section class="panel" *ngIf="!loading && !error">
+  <div class="table-toolbar">
+    <div class="search-input">
+      <app-icon name="search"></app-icon
+      ><input
+        type="search"
+        aria-label="Buscar docente"
+        placeholder="Buscar por nombre, documento o correo"
+        [(ngModel)]="search"
+      />
+    </div>
+    <select class="filter-select" aria-label="Filtrar por estado" [(ngModel)]="estado">
+      <option value="todos">Todos los estados</option>
+      <option value="activos">Activos</option>
+      <option value="inactivos">Inactivos</option></select
+    ><span class="record-count">{{ filtered.length }} docentes</span>
+  </div>
+  <div class="table-scroll" *ngIf="filtered.length; else empty">
+    <table>
+      <thead>
+        <tr>
+          <th>Docente</th>
+          <th>Vinculación</th>
+          <th>Especialidad</th>
+          <th>Horas / semana</th>
+          <th>Estado</th>
+          <th class="actions-column">Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let docente of filtered">
+          <td>
+            <a class="table-name" [routerLink]="['/docentes', docente.id]"
+              >{{ docente.nombre }} {{ docente.apellido }}</a
+            ><small class="table-secondary">{{ docente.correoInstitucional }}</small>
+          </td>
+          <td>{{ etiqueta(docente.tipoVinculacion) }}</td>
+          <td>{{ docente.especialidad }}</td>
+          <td>{{ docente.horasMaximasDocenciaSemanal }} h</td>
+          <td>
+            <span class="badge" [class.badge-muted]="!docente.estado">{{
+              docente.estado ? 'Activo' : 'Inactivo'
+            }}</span>
+          </td>
+          <td>
+            <div class="row-actions">
+              <a class="text-button" [routerLink]="['/docentes', docente.id]">Ver ficha</a
+              ><button
+                type="button"
+                class="icon-button"
+                [attr.aria-label]="'Editar a ' + docente.nombre"
+                title="Editar docente"
+                (click)="open(docente)"
+              >
+                <app-icon name="edit"></app-icon></button
+              ><button
+                type="button"
+                class="icon-button danger"
+                [attr.aria-label]="'Eliminar a ' + docente.nombre"
+                title="Eliminar docente"
+                (click)="deleting = docente; modalError = ''"
+              >
+                <app-icon name="trash"></app-icon>
+              </button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <ng-template #empty
+    ><div class="empty-state">
+      <app-icon name="users"></app-icon>
+      <h2>
+        {{
+          search || estado !== 'todos'
+            ? 'No encontramos coincidencias'
+            : 'Aún no hay docentes registrados'
+        }}
+      </h2>
+      <p>
+        {{
+          search || estado !== 'todos'
+            ? 'Ajusta la búsqueda o el filtro de estado.'
+            : 'Registra los docentes del programa para comenzar.'
+        }}
+      </p>
+    </div></ng-template
+  >
+</section>
+<app-dialog
+  *ngIf="formOpen"
+  [title]="editing ? 'Editar docente' : 'Agregar docente'"
+  [wide]="true"
+  [busy]="busy"
+  (close)="formOpen = false"
+  ><app-feedback [message]="modalError" kind="error"></app-feedback
+  ><app-registro-form
+    [fields]="fields"
+    [value]="value"
+    [busy]="busy"
+    (save)="save($event)"
+    (cancel)="formOpen = false"
+  ></app-registro-form
+></app-dialog>
+<app-dialog *ngIf="deleting" title="Eliminar docente" [busy]="busy" (close)="deleting = null"
+  ><p>
+    ¿Quieres eliminar a <strong>{{ deleting.nombre }} {{ deleting.apellido }}</strong
+    >? El sistema impedirá la eliminación si tiene registros relacionados.
+  </p>
+  <app-feedback [message]="modalError" kind="error"></app-feedback>
+  <div class="dialog-actions">
+    <button
+      type="button"
+      class="button button-secondary"
+      [disabled]="busy"
+      (click)="deleting = null"
+    >
+      Cancelar</button
+    ><button type="button" class="button button-danger" [disabled]="busy" (click)="remove()">
+      {{ busy ? 'Eliminando…' : 'Eliminar docente' }}
+    </button>
+  </div></app-dialog
+>

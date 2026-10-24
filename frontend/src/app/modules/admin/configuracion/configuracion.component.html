@@ -1,0 +1,125 @@
+<header class="page-heading">
+  <div>
+    <p class="eyebrow">ADMINISTRACIÓN</p>
+    <h1>Configuración de horarios</h1>
+    <p class="muted">Define las franjas institucionales y las condiciones de programación.</p>
+  </div>
+</header>
+<app-feedback [message]="error" kind="error" [retry]="!busy" (retryClick)="load()"></app-feedback
+><app-feedback [message]="success" kind="success"></app-feedback>
+<div *ngIf="loading" class="loading-state" role="status">
+  <span class="spinner"></span>Cargando configuración…
+</div>
+<ng-container *ngIf="!loading && loaded"
+  ><app-feedback
+    *ngIf="!configuracion && !error"
+    message="Antes de generar el primer horario, registra la configuración institucional."
+  ></app-feedback>
+  <form class="panel configuration-form" [formGroup]="form" (ngSubmit)="save()" novalidate>
+    <section class="configuration-section">
+      <div>
+        <h2>Franjas académicas</h2>
+        <p class="muted">Las sesiones deben comenzar y terminar dentro de estas horas.</p>
+      </div>
+      <div>
+        <fieldset>
+          <legend>Lunes a viernes</legend>
+          <div class="form-grid">
+            <div class="field" *ngFor="let h of horas.slice(0, 2)">
+              <label [for]="h.key">{{ h.label }}</label
+              ><input
+                type="time"
+                [id]="h.key"
+                [formControlName]="h.key"
+                step="1"
+                required
+              /><app-field-error [control]="form.get(h.key)"></app-field-error>
+            </div>
+          </div>
+          <p class="field-error" *ngIf="form.errors?.['semana'] && form.touched">
+            La hora inicial debe ser anterior a la final.
+          </p>
+        </fieldset>
+        <fieldset>
+          <legend>Sábado</legend>
+          <div class="form-grid">
+            <div class="field" *ngFor="let h of horas.slice(2, 4)">
+              <label [for]="h.key">{{ h.label }}</label
+              ><input
+                type="time"
+                [id]="h.key"
+                [formControlName]="h.key"
+                step="1"
+                required
+              /><app-field-error [control]="form.get(h.key)"></app-field-error>
+            </div>
+          </div>
+          <p class="field-error" *ngIf="form.errors?.['sabado'] && form.touched">
+            La hora inicial debe ser anterior a la final.
+          </p>
+        </fieldset>
+      </div>
+    </section>
+    <section class="configuration-section">
+      <div>
+        <h2>Descanso institucional</h2>
+        <p class="muted">Es opcional. Deja ambas horas vacías si no aplica.</p>
+      </div>
+      <div>
+        <div class="form-grid">
+          <div class="field" *ngFor="let h of horas.slice(4)">
+            <label [for]="h.key">{{ h.label }}</label
+            ><input type="time" [id]="h.key" [formControlName]="h.key" step="1" />
+          </div>
+        </div>
+        <p class="field-error" *ngIf="form.errors?.['descanso'] && form.touched">
+          Completa las dos horas del descanso en orden cronológico.
+        </p>
+      </div>
+    </section>
+    <section class="configuration-section">
+      <div>
+        <h2>Sesiones y distribución</h2>
+        <p class="muted">Estas condiciones se aplican al registrar y generar sesiones.</p>
+      </div>
+      <div>
+        <div class="form-grid">
+          <div class="field">
+            <label for="duracion">Duración de sesión (minutos)</label
+            ><input
+              id="duracion"
+              type="number"
+              formControlName="duracionSesionMinutos"
+              min="1"
+              step="1"
+              required
+            /><app-field-error [control]="form.controls.duracionSesionMinutos"></app-field-error>
+          </div>
+          <div class="field">
+            <label for="maximo">Máximo de sesiones por grupo / semana</label
+            ><input
+              id="maximo"
+              type="number"
+              formControlName="maxSesionesSemanales"
+              min="1"
+              step="1"
+              required
+            /><app-field-error [control]="form.controls.maxSesionesSemanales"></app-field-error>
+          </div>
+        </div>
+        <label class="checkbox-line"
+          ><input type="checkbox" formControlName="evitarDiasConsecutivos" /><span
+            >Evitar sesiones del mismo grupo en días consecutivos</span
+          ></label
+        >
+      </div>
+    </section>
+    <footer class="configuration-footer">
+      <p class="hint">Los cambios se comprobarán contra las sesiones ya programadas.</p>
+      <button type="submit" class="button button-primary" [disabled]="busy">
+        <span *ngIf="busy" class="spinner"></span
+        >{{ busy ? 'Guardando…' : 'Guardar configuración' }}
+      </button>
+    </footer>
+  </form>
+</ng-container>

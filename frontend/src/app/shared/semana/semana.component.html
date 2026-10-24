@@ -1,0 +1,88 @@
+<div
+  class="week-scroll"
+  *ngIf="ticks.length; else noRange"
+  tabindex="0"
+  aria-label="Horario semanal, desplázate horizontalmente para ver todos los días"
+>
+  <div class="week-grid">
+    <div class="week-corner">HORA</div>
+    <div class="week-day-header" *ngFor="let day of dias">{{ day.nombre }}</div>
+    <div class="week-hours" [style.height.px]="height">
+      <span *ngFor="let tick of ticks" [style.top.px]="(tick - start) * scale">{{
+        hora(tick)
+      }}</span>
+    </div>
+    <div
+      class="week-day"
+      *ngFor="let day of dias; let index = index"
+      [style.height.px]="height"
+      [style.background-size]="'100% ' + 60 * scale + 'px'"
+      (dragover)="allowDrop($event)"
+      (drop)="drop($event, day.valor)"
+    >
+      <div class="outside-hours outside-hours-top" [style.height.px]="blockedTop(index)"></div>
+      <div
+        class="outside-hours outside-hours-bottom"
+        [style.height.px]="blockedBottom(index)"
+      ></div>
+      <div
+        *ngIf="breakHeight > 0"
+        class="break-zone"
+        [style.top.px]="breakTop"
+        [style.height.px]="breakHeight"
+      >
+        <span>Descanso</span>
+      </div>
+      <button
+        type="button"
+        *ngFor="let item of days[index]; trackBy: trackSesion"
+        class="session-block"
+        [class]="'session-block session-color-' + item.color"
+        [style.top.px]="item.top"
+        [style.height.px]="item.height"
+        [style.left.%]="item.left"
+        [style.width]="'calc(' + item.width + '% - 5px)'"
+        [draggable]="editable"
+        (dragstart)="drag($event, item.sesion)"
+        (click)="selectSession.emit(item.sesion)"
+        [attr.aria-label]="
+          item.title +
+          ', ' +
+          item.subtitle +
+          ', ' +
+          day.nombre +
+          ' de ' +
+          item.sesion.horaInicio.slice(0, 5) +
+          ' a ' +
+          item.sesion.horaFin.slice(0, 5)
+        "
+        [title]="
+          item.title +
+          ' · ' +
+          item.subtitle +
+          '\n' +
+          item.docente +
+          '\n' +
+          item.sesion.horaInicio.slice(0, 5) +
+          '–' +
+          item.sesion.horaFin.slice(0, 5)
+        "
+      >
+        <strong>{{ item.title }}</strong
+        ><span>{{ item.subtitle }}</span
+        ><small
+          >{{ item.sesion.horaInicio.slice(0, 5) }}–{{ item.sesion.horaFin.slice(0, 5) }}</small
+        >
+      </button>
+    </div>
+  </div>
+</div>
+<ng-template #noRange
+  ><div class="empty-state calendar-empty">
+    <app-icon name="calendar"></app-icon>
+    <h2>El horario comienza con tus datos</h2>
+    <p>Configura las franjas institucionales y registra los grupos para organizar la semana.</p>
+    <a routerLink="/configuracion" class="button button-secondary"
+      >Configurar horarios<app-icon name="arrow"></app-icon
+    ></a></div
+></ng-template>
