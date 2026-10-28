@@ -22,12 +22,16 @@
     </button>
   </div>
 </header>
+<nav class="schedule-workflow" aria-label="Proceso de gestión del horario">
+  <span>Generar</span><span>Ajustar</span><a routerLink="/validaciones">Validar</a>
+</nav>
 <app-feedback [message]="error" kind="error" [retry]="true" (retryClick)="load()"></app-feedback
 ><app-feedback [message]="success" kind="success"></app-feedback>
 <div *ngIf="loading" class="loading-state" role="status">
   <span class="spinner"></span>Cargando horarios…
 </div>
-<section class="panel calendar-panel" *ngIf="!loading && !error && data">
+<div class="schedule-workspace" *ngIf="!loading && !error && data">
+<section class="panel calendar-panel">
   <div class="table-toolbar schedule-toolbar">
     <div class="view-toggle">
       <button
@@ -138,6 +142,30 @@
     ></ng-template
   >
 </section>
+<aside class="panel schedule-review" aria-labelledby="review-title">
+  <div class="review-heading">
+    <h2 id="review-title">Revisión del horario</h2>
+    <p>Sesiones programadas de todos los grupos.</p>
+  </div>
+  <div class="review-content" aria-live="polite">
+    <p class="review-empty" *ngIf="!sesionesProgramadas">No hay sesiones programadas para revisar.</p>
+    <p class="review-warning" *ngIf="!data.configuracion">Falta la configuración institucional; la revisión de franjas y duración está incompleta.</p>
+    <ng-container *ngIf="sesionesProgramadas">
+      <p class="review-count" *ngIf="observaciones.length">{{ observaciones.length }} {{ observaciones.length === 1 ? 'observación encontrada' : 'observaciones encontradas' }}</p>
+      <p class="review-empty" *ngIf="!observaciones.length">No se encontraron observaciones en la revisión {{ data.configuracion ? 'local' : 'parcial' }}.</p>
+      <ul class="review-list" *ngIf="observacionesVisibles.length">
+        <li *ngFor="let observacion of observacionesVisibles">
+          <strong>{{ observacion.title }}</strong><span>{{ observacion.detail }}</span>
+        </li>
+      </ul>
+    </ng-container>
+  </div>
+  <div class="review-footer">
+    <p>El servidor verifica las condiciones al guardar o generar.</p>
+    <a routerLink="/validaciones">Ver revisión completa <app-icon name="arrow"></app-icon></a>
+  </div>
+</aside>
+</div>
 <app-dialog
   *ngIf="generationOpen"
   title="Generar horario de un grupo"

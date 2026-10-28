@@ -4,15 +4,20 @@ import { ActivatedRoute } from '@angular/router';
 import { finalize } from 'rxjs';
 import { AcademicoService } from '../../../services/academico.service';
 import { mensajeError } from '../../../services/api-error';
+import { ObservacionHorario, ValidacionHorarioService } from '../../../services/validacion-horario.service';
 import { DatosPlaneacion, DIAS, DiaSemana, SesionHorarioDTO } from '../../../interfaces/api.models';
 import { MovimientoSesion } from '../../../shared/semana/semana.component';
 @Component({
   selector: 'app-horarios',
   standalone: false,
   templateUrl: './horarios.component.html',
+  styleUrl: './horarios.component.css',
 })
 export class HorariosComponent implements OnInit {
   data: DatosPlaneacion | null = null;
+  observaciones: ObservacionHorario[] = [];
+  observacionesVisibles: ObservacionHorario[] = [];
+  sesionesProgramadas = 0;
   loading = true;
   busy = false;
   error = '';
@@ -32,6 +37,7 @@ export class HorariosComponent implements OnInit {
     private readonly api: AcademicoService,
     private readonly route: ActivatedRoute,
     fb: FormBuilder,
+    private readonly validacion: ValidacionHorarioService,
   ) {
     this.form = fb.group(
       {
@@ -62,7 +68,7 @@ export class HorariosComponent implements OnInit {
       .pipe(finalize(() => (this.loading = false)))
       .subscribe({
         next: (data) => {
-          this.data = data;
+          this.actualizarDatos(data);
           if (initial) {
             const id = Number(this.route.snapshot.queryParamMap.get('sesion'));
             const session = data.sesiones.find((s) => s.idSesion === id);
@@ -72,6 +78,12 @@ export class HorariosComponent implements OnInit {
         },
         error: (error) => (this.error = mensajeError(error)),
       });
+  }
+  private actualizarDatos(data: DatosPlaneacion): void {
+    this.data = data;
+    this.sesionesProgramadas = data.sesiones.filter((s) => s.estado === 'PROGRAMADA').length;
+    this.observaciones = this.validacion.revisar(data);
+    this.observacionesVisibles = this.observaciones.slice(0, 3);
   }
   get filtered(): SesionHorarioDTO[] {
     return (
@@ -160,13 +172,13 @@ export class HorariosComponent implements OnInit {
         next: (sessions) => {
           const id = Number(this.generationGroup);
           if (this.data)
-            this.data = {
+            this.actualizarDatos({
               ...this.data,
               sesiones: [
                 ...this.data.sesiones.filter((s) => s.grupoId !== id || s.estado !== 'PROGRAMADA'),
                 ...sessions,
               ],
-            };
+            });
           this.generationOpen = false;
           this.groupFilter = id;
           this.success = `El grupo tiene ${sessions.length} sesiones programadas. Las sesiones existentes se conservaron.`;
@@ -185,10 +197,10 @@ export class HorariosComponent implements OnInit {
       .subscribe({
         next: () => {
           if (this.data)
-            this.data = {
+            this.actualizarDatos({
               ...this.data,
               sesiones: this.data.sesiones.filter((s) => s.idSesion !== id),
-            };
+            });
           this.deleting = null;
           this.success = 'La sesión se eliminó correctamente.';
         },

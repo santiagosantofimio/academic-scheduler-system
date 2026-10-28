@@ -8,8 +8,7 @@
   ></button>
   <aside class="sidebar" [class.sidebar-open]="mobileMenu" aria-label="Menú principal">
     <a class="sidebar-brand" [routerLink]="usuario.rol === 'ADMINISTRADOR' ? '/inicio' : '/cuenta'"
-      ><span class="brand-mark"><img src="assets/sis-gen.png" alt="SIS GEN" /></span
-      ><span class="brand-caption">Gestión de horarios académicos</span></a
+      ><img class="brand-logo brand-logo--sidebar" src="images/logos/sis-gen.png" alt="SIS GEN" /><span class="brand-caption">Gestión de horarios académicos</span></a
     >
     <ng-container *ngIf="usuario.rol === 'ADMINISTRADOR'; else docenteMenu">
       <p class="nav-label">PLANEACIÓN ACADÉMICA</p>
@@ -17,7 +16,7 @@
         <a
           *ngFor="let item of navigation"
           [routerLink]="item.path"
-          routerLinkActive="nav-active"
+          routerLinkActive="nav-active" ariaCurrentWhenActive="page"
           [routerLinkActiveOptions]="{ exact: item.path === '/inicio' }"
           (click)="mobileMenu = false"
           ><app-icon [name]="item.icon"></app-icon><span>{{ item.label }}</span></a
@@ -28,7 +27,7 @@
         <a
           *ngFor="let item of administration"
           [routerLink]="item.path"
-          routerLinkActive="nav-active"
+          routerLinkActive="nav-active" ariaCurrentWhenActive="page"
           (click)="mobileMenu = false"
           ><app-icon [name]="item.icon"></app-icon><span>{{ item.label }}</span></a
         >
@@ -37,7 +36,7 @@
     <ng-template #docenteMenu
       ><p class="nav-label">MI CUENTA</p>
       <nav>
-        <a routerLink="/cuenta" routerLinkActive="nav-active" (click)="mobileMenu = false"
+        <a routerLink="/cuenta" routerLinkActive="nav-active" ariaCurrentWhenActive="page" (click)="mobileMenu = false"
           ><app-icon name="users"></app-icon><span>Mi acceso</span></a
         >
       </nav></ng-template

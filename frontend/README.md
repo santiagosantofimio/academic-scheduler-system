@@ -4,10 +4,10 @@ Aplicación del sistema de horarios de Ingeniería de Sistemas de la Universidad
 
 ## Ejecutar desde Visual Studio Code
 
-Requiere una versión de Node compatible con Angular 20.3: Node 20.19+, 22.12+ o 24.x. Se verificó con Node 24.22.1.
+Requiere una versión de Node compatible con Angular 20.3: Node 20.19+, 22.12+ o 24.x. La última comprobación usó Node 22.20.0.
 
 ```powershell
-Set-Location -LiteralPath 'C:\Users\Jairo\.codex\academic-scheduler-system\frontend'
+Set-Location -LiteralPath 'D:\GitHub - Proyecto final\academic-scheduler-system\frontend'
 npm ci
 npm start
 ```
@@ -25,13 +25,13 @@ npm test -- --watch=false
 
 La salida de producción está en `dist/frontend/browser`. Las pruebas utilizan Jasmine y Karma con ChromeHeadless; requieren Chrome o un navegador Chromium compatible configurado mediante `CHROME_BIN`.
 
-Se ejecutaron 24 pruebas satisfactorias en el navegador integrado de Codex, conectado al servidor Karma. El lanzador automático de Edge no pudo ejecutarse dentro del entorno restringido de Windows; no se deshabilitaron medidas de seguridad para resolverlo.
+La última verificación ejecutó 33 pruebas satisfactoriamente con Edge en modo headless, en el repositorio definitivo y con las dependencias fijadas en el lockfile.
 
 ## Autenticación y acceso
 
 HTTP Basic mediante correo institucional y contraseña, con token CSRF obtenido de `GET /api/csrf`. Las credenciales sólo permanecen en memoria mientras la aplicación está abierta: recargar la página exige ingresar otra vez. Cerrar sesión elimina las credenciales y el token de la memoria del frontend.
 
-El backend no ofrece un endpoint de perfil/roles ni de logout explícito. Tras validar las credenciales, se consulta el acceso administrativo usando la búsqueda de administrador por correo. Una respuesta 403 permite identificar el acceso docente limitado según los únicos dos roles de la implementación actual. No se interpretan errores 401, 500 o fallos de conexión como un inicio de sesión exitoso. Si se cambia la política de roles del servidor, este flujo debe adaptarse; es preferible añadir posteriormente un endpoint de identidad explícito.
+El backend no ofrece un endpoint de perfil/roles ni de logout explícito. Tras validar las credenciales, se consulta el acceso administrativo usando la búsqueda de administrador por correo. La implementación interpreta una respuesta 403 como acceso docente limitado; este código, por sí solo, no confirma el rol y requiere un contrato explícito de identidad. No se interpretan errores 401, 500 o fallos de conexión como un inicio de sesión exitoso. Si se cambia la política de roles del servidor, este flujo debe adaptarse; es preferible añadir posteriormente un endpoint de identidad explícito.
 
 Los administradores acceden a la gestión académica. Los docentes tienen una pantalla de cuenta autenticada que explica la limitación actual del servidor: las consultas y escrituras de información académica están protegidas para ADMINISTRADOR. La aplicación no intenta saltarse esa restricción. Los guards de Angular complementan la autorización del servidor, no la sustituyen.
 
@@ -54,6 +54,15 @@ Publicar el contenido de `dist/frontend/browser` y configurar el servidor web pa
 
 Consultar `IMPLEMENTACION_FRONTEND.md` para el inventario de archivos, endpoints conectados, pruebas visuales y límites de verificación.
 
-## Trasladar a otra copia del repositorio
+## Recursos visuales
 
-Después de respaldar cambios propios, sustituir la carpeta `frontend` anterior por esta versión y ejecutar `npm ci`. No copiar `node_modules`, `.angular` ni `dist` como código fuente. El ZIP de entrega incluye los archivos fuente, el logo, el lockfile y la configuración; no incluye el servidor aislado usado para las pruebas visuales.
+El frontend usa Bootstrap Grid 5.3.8 y Font Awesome Free 6.7.2 junto con los estilos propios. El módulo de navegación se carga de forma diferida para reducir el paquete inicial. El logo transparente SIS GEN se conserva sin recortes en `public/images/logos/sis-gen.png` y se muestra en acceso y navegación. El favicon permanece vacío: la marca es demasiado pequeña y clara para resultar legible en el tamaño de una pestaña.
+## Aclaración sobre roles y alcance
+
+El README de la raíz menciona los roles Coordinador y Consulta; la implementación actual distingue Administrador y Docente. Su equivalencia y sus permisos deben confirmarse con los requisitos antes de modificar la seguridad. La inferencia actual de Docente ante una respuesta HTTP 403 debe revisarse: ese código por sí solo no confirma el rol, y aún no existe un contrato explícito de identidad. Por indicación del proyecto, el frontend no incorpora gestión de aulas ni espacios físicos.
+
+## Correspondencia con los prototipos
+
+Los wireframes y mockups de planeación corresponden a `modules/admin/inicio`, con datos consultados y calendario compartido. El editor semanal corresponde a `modules/admin/horarios` y `shared/semana`; el resumen lateral usa las observaciones de `ValidacionHorarioService` y enlaza a `modules/admin/validaciones`. No se incorporan los ejemplos numéricos, personas o periodos del prototipo como datos reales.
+
+Los pasos de comparación de alternativas y publicación no están conectados porque no se cuenta con contratos implementados. El PDF no especifica una pantalla de acceso ni las funciones detalladas del Docente. El logo transparente entregado se muestra sin recortes; se mantiene el favicon vacío porque la marca horizontal, dentro de un PNG cuadrado con mucho margen transparente, no resulta legible en el tamaño de una pestaña.

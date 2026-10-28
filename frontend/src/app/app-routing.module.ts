@@ -1,9 +1,6 @@
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
-import { LayoutComponent } from './modules/layout/layout.component';
-import { CuentaComponent } from './modules/layout/cuenta.component';
-import { AuthGuard } from './guards/auth.guard';
-import { AdminGuard } from './guards/admin.guard';
+
 const routes: Routes = [
   {
     path: 'ingresar',
@@ -11,16 +8,7 @@ const routes: Routes = [
   },
   {
     path: '',
-    component: LayoutComponent,
-    canActivate: [AuthGuard],
-    children: [
-      { path: 'cuenta', component: CuentaComponent },
-      {
-        path: '',
-        canActivate: [AdminGuard],
-        loadChildren: () => import('./modules/admin/admin.module').then((m) => m.AdminModule),
-      },
-    ],
+    loadChildren: () => import('./modules/layout/layout.module').then((m) => m.LayoutModule),
   },
   { path: '**', redirectTo: 'inicio' },
 ];

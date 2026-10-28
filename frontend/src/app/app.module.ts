@@ -10,12 +10,11 @@ import {
 } from '@angular/common/http';
 import { AppComponent } from './app.component';
 import { AppRoutingModule } from './app-routing.module';
-import { LayoutModule } from './modules/layout/layout.module';
 import { ApiInterceptor } from './interceptors/api.interceptor';
 registerLocaleData(esCo);
 @NgModule({
   declarations: [AppComponent],
-  imports: [BrowserModule, LayoutModule, AppRoutingModule],
+  imports: [BrowserModule, AppRoutingModule],
   providers: [
     provideBrowserGlobalErrorListeners(),
     { provide: LOCALE_ID, useValue: 'es-CO' },
