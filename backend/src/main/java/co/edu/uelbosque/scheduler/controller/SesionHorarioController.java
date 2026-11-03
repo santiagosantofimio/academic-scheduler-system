@@ -98,7 +98,6 @@ public class SesionHorarioController {
 		return ResponseEntity.status(201).body("SesionHorario registrado");
 	}
 
-	/** Sobrecarga escalar del UML; la API HTTP utiliza el DTO documentado. */
 	public ResponseEntity<String> crearSesion(Long grupoId, DayOfWeek diaSemana, LocalTime horaInicio,
 			LocalTime horaFin, EstadoSesion estado) {
 		SesionHorarioDTO data = new SesionHorarioDTO(diaSemana, horaInicio, horaFin, estado);

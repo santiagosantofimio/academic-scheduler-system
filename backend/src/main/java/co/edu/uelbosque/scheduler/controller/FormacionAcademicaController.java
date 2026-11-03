@@ -105,7 +105,6 @@ public class FormacionAcademicaController {
 		return ResponseEntity.status(201).body("FormacionAcademica registrado");
 	}
 
-	/** Sobrecarga escalar del UML; la API HTTP utiliza el DTO documentado. */
 	public ResponseEntity<String> crearFormacion(Long docenteId, String tituloObtenido, NivelFormacion nivelFormacion,
 			String institucion, String areaConocimiento, int anioGraduacion) {
 		FormacionAcademicaDTO data = new FormacionAcademicaDTO(tituloObtenido, nivelFormacion, institucion,

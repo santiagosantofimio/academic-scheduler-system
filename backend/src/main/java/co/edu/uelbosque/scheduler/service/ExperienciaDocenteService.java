@@ -57,8 +57,6 @@ public class ExperienciaDocenteService extends AbstractCrudService<ExperienciaDo
 		configuraciones.bloquearConfiguraciones();
 		Long docenteId = requerido(id).getDocente().getId();
 		int resultado = super.deleteById(id);
-		// Una eliminacion incompatible revierte la transaccion, incluido el DELETE ya
-		// enviado.
 		requisitos.validarAsignacionesDocente(docenteId);
 		return resultado;
 	}

@@ -20,6 +20,7 @@ public class GrupoService extends AbstractCrudService<Grupo, GrupoDTO> {
 	private final DocenteRepository docentes;
 	private final SesionHorarioRepository sesiones;
 	private final RequisitoAsignaturaService requisitos;
+	private final ConfiguracionHorariosRepository configuraciones;
 
 	public GrupoService(GrupoRepository rep, AsignaturaServiceRepository asignaturas, DocenteRepository docentes,
 			SesionHorarioRepository sesiones, RequisitoAsignaturaService requisitos,
@@ -30,6 +31,7 @@ public class GrupoService extends AbstractCrudService<Grupo, GrupoDTO> {
 		this.docentes = docentes;
 		this.sesiones = sesiones;
 		this.requisitos = requisitos;
+		this.configuraciones = configuraciones;
 	}
 
 	@Override
@@ -51,6 +53,7 @@ public class GrupoService extends AbstractCrudService<Grupo, GrupoDTO> {
 	protected void aplicar(GrupoDTO data, Grupo entity, boolean nuevo) {
 		texto(data.getNumeroGrupo(), "numeroGrupo");
 		verificarEstado(data.getEstado());
+		verificarCupo(data.getCupoEsperado());
 		Long padre = data.getAsignaturaId() != null ? data.getAsignaturaId()
 				: entity.getAsignatura() == null ? null : entity.getAsignatura().getIdAsginatura();
 		verificarId(padre);
@@ -58,8 +61,7 @@ public class GrupoService extends AbstractCrudService<Grupo, GrupoDTO> {
 				.orElseThrow(() -> new RecursoNoEncontradoException("Asignatura no encontrada"));
 		verificarDuplicado(rep.findByAsignaturaIdAndNumeroGrupo(padre, data.getNumeroGrupo()).orElseGet(List::of)
 				.stream().anyMatch(g -> g.getIdGrupo() != entity.getIdGrupo()), "Numero de grupo de la asignatura");
-		Long docenteId = data.getDocenteId() != null ? data.getDocenteId()
-				: entity.getDocente() == null ? null : entity.getDocente().getId();
+		Long docenteId = data.getDocenteId();
 		Docente docente = null;
 		if (docenteId != null) {
 			verificarId(docenteId);
@@ -80,6 +82,14 @@ public class GrupoService extends AbstractCrudService<Grupo, GrupoDTO> {
 		DtoMapper.copy(data, entity);
 		entity.setAsignatura(asignatura);
 		entity.setDocente(docente);
+	}
+
+	private void verificarCupo(int cupo) {
+		if (cupo <= 0)
+			throw new DatosInvalidosException("El cupo esperado debe ser positivo");
+		List<ConfiguracionHorarios> registros = configuraciones.findAll();
+		if (!registros.isEmpty() && !ReglasHorario.cupoValido(ConfiguracionHorariosService.unica(registros), cupo))
+			throw new DatosInvalidosException("El cupo esperado esta fuera del rango institucional");
 	}
 
 	public List<GrupoDTO> findByNumeroGrupo(String valor) {

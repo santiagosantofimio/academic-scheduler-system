@@ -18,13 +18,41 @@ public class DocenteService extends AbstractCrudService<Docente, DocenteDTO> {
 	private final DocenteRepository rep;
 	private final DatosUsuario datosUsuario;
 	private final SesionHorarioRepository sesiones;
+	private final GrupoRepository grupos;
+	private final FormacionAcademicaRepository formaciones;
+	private final ExperienciaDocenteRepository experiencias;
+	private final DisponibilidadDocenteRepository disponibilidades;
+	private final ConfiguracionHorariosRepository configuraciones;
 
 	public DocenteService(DocenteRepository rep, DatosUsuario datosUsuario, SesionHorarioRepository sesiones,
-			ConfiguracionHorariosRepository configuraciones) {
+			GrupoRepository grupos, FormacionAcademicaRepository formaciones, ExperienciaDocenteRepository experiencias,
+			DisponibilidadDocenteRepository disponibilidades, ConfiguracionHorariosRepository configuraciones) {
 		super(rep, "Docente", configuraciones);
 		this.rep = rep;
 		this.datosUsuario = datosUsuario;
 		this.sesiones = sesiones;
+		this.grupos = grupos;
+		this.formaciones = formaciones;
+		this.experiencias = experiencias;
+		this.disponibilidades = disponibilidades;
+		this.configuraciones = configuraciones;
+	}
+
+	@Override
+	@Transactional
+	public int deleteById(Long id) {
+		configuraciones.bloquearConfiguraciones();
+		requerido(id);
+		List<Grupo> asignados = grupos.buscarPorDocente(id);
+		if (!asignados.isEmpty())
+			throw new AsignacionAcademicaInvalidaException("No se puede eliminar: el docente esta asignado a "
+					+ String.join(", ", asignados.stream()
+							.map(g -> g.getAsignatura().getCodigo() + " grupo " + g.getNumeroGrupo()).toList())
+					+ ". En Grupos asigne otro docente o deje el grupo sin docente, o desactive al docente");
+		disponibilidades.deleteAll(disponibilidades.findByDocenteId(id));
+		formaciones.deleteAll(formaciones.findByDocenteId(id).orElseGet(List::of));
+		experiencias.deleteAll(experiencias.findByDocenteId(id).orElseGet(List::of));
+		return super.deleteById(id);
 	}
 
 	@Override

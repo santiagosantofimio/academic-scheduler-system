@@ -5,10 +5,6 @@ import java.util.Objects;
 import co.edu.uelbosque.scheduler.entity.*;
 import co.edu.uelbosque.scheduler.entity.Usuario;
 
-/**
- * Conserva la generalizacion a Usuario dibujada en el UML; no es una entidad
- * JPA.
- */
 public class DocenteDTO extends Usuario {
 	private TipoVinculacion tipoVinculacion;
 	private String escalafon;
@@ -102,7 +98,6 @@ public class DocenteDTO extends Usuario {
 		this.horasMaximasDocenciaSemanal = horasMaximasDocenciaSemanal;
 	}
 
-	/** Alias de la identidad heredada: evita dos IDs contradictorios. */
 	public Long getIdDocente() {
 		return getId();
 	}

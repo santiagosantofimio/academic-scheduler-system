@@ -15,6 +15,18 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class CrudYUsuariosTest {
+    @Test void usuarioActualIndicaSuRolSegunElTipoDeCuenta() {
+        var usuarios = mock(UsuarioRepository.class);
+        Administrador admin = new Administrador("Ana","Rios","1","ana@example.test","hash",true,"Coordinador"); admin.setId(1L);
+        Docente docente = new Docente(); docente.setId(2L); docente.setNombre("Luis"); docente.setCorreoInstitucional("luis@example.test");
+        when(usuarios.findByCorreoInstitucional("ana@example.test")).thenReturn(Optional.of(admin));
+        when(usuarios.findByCorreoInstitucional("luis@example.test")).thenReturn(Optional.of(docente));
+        var servicio = new UsuarioActualService(usuarios);
+        assertEquals("ADMINISTRADOR", servicio.consultar("ana@example.test").rol());
+        assertEquals("DOCENTE", servicio.consultar("luis@example.test").rol());
+        assertEquals(2L, servicio.consultar("luis@example.test").id());
+        assertThrows(RecursoNoEncontradoException.class, () -> servicio.consultar("nadie@example.test"));
+    }
     @Test void inexistenteNoSeActualizaNiSeCreaAccidentalmente() {
         AdministradorRepository rep=mock(AdministradorRepository.class);
         var servicio=new AdministradorService(rep,mock(DatosUsuario.class),mock(ConfiguracionHorariosRepository.class));
@@ -87,6 +99,5 @@ class CrudYUsuariosTest {
         doThrow(new AsignacionAcademicaInvalidaException("Requisito incumplido")).when(requisitos).validarAsignacionesDocente(2L);
         var servicio=new FormacionAcademicaService(rep,mock(DocenteRepository.class),Clock.systemUTC(),mock(ConfiguracionHorariosRepository.class),requisitos);
         assertThrows(AsignacionAcademicaInvalidaException.class, () -> servicio.deleteById(1L));
-        // El rollback fisico se verificara en integracion con BD; aqui se verifica la excepcion que lo activa.
     }
 }

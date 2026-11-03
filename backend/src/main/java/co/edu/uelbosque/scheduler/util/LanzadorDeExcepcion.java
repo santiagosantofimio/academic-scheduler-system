@@ -89,7 +89,6 @@ public final class LanzadorDeExcepcion {
 			throw new DisponibilidadInvalidaException("El docente no tiene disponibilidad operativa");
 	}
 
-	/** true significa que se encontro un cruce. */
 	public static void verificarCruceHorario(boolean hayCruce) {
 		if (hayCruce)
 			throw new CruceHorarioException("La franja se superpone con otra sesion programada");

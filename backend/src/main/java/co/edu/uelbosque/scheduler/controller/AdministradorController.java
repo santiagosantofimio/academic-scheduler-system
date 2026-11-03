@@ -96,7 +96,6 @@ public class AdministradorController {
 		return ResponseEntity.ok(administradorSer.findByCargo(valor));
 	}
 
-	/** Sobrecarga escalar del UML; la API HTTP utiliza el DTO documentado. */
 	public ResponseEntity<String> crearAdministrador(String nombre, String apellido, String numeroDocumento,
 			String correoInstitucional, String contrasenia, boolean estado, String cargo) {
 		AdministradorDTO data = new AdministradorDTO(nombre, apellido, numeroDocumento, correoInstitucional,

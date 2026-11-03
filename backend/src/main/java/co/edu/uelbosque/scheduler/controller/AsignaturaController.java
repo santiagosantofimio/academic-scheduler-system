@@ -116,7 +116,6 @@ public class AsignaturaController {
 		return ResponseEntity.status(201).body("Asignatura registrado");
 	}
 
-	/** Sobrecarga escalar del UML; la API HTTP utiliza el DTO documentado. */
 	public ResponseEntity<String> crearAsignatura(Long planEstudiosId, String codigo, String nombre, int semestre,
 			int creditos, int sesionesSemanales, String areaConocimiento, boolean estado) {
 		AsignaturaDTO data = new AsignaturaDTO(codigo, nombre, semestre, creditos, sesionesSemanales, areaConocimiento,

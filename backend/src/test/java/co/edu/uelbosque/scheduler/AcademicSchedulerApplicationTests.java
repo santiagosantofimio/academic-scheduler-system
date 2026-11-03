@@ -1,12 +1,13 @@
 package co.edu.uelbosque.scheduler;
 
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
+import org.testcontainers.junit.jupiter.Testcontainers;
 
-// Prueba de integracion original: requiere configurar expresamente una base de datos.
-@EnabledIfSystemProperty(named = "scheduler.integration", matches = "true")
+@Testcontainers(disabledWithoutDocker = true)
 @SpringBootTest
+@Import(TestcontainersConfiguration.class)
 class AcademicSchedulerApplicationTests {
 
 	@Test

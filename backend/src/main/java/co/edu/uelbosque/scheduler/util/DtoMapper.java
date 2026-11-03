@@ -3,7 +3,6 @@ package co.edu.uelbosque.scheduler.util;
 import co.edu.uelbosque.scheduler.entity.*;
 import co.edu.uelbosque.scheduler.dto.*;
 
-/** Mapeo explicito: nunca copia hashes ni asociaciones JPA a las respuestas. */
 public final class DtoMapper {
 	private DtoMapper() {
 	}
@@ -105,6 +104,7 @@ public final class DtoMapper {
 		dto.setIdGrupo(entity.getIdGrupo());
 		dto.setNumeroGrupo(entity.getNumeroGrupo());
 		dto.setEstado(entity.getEstado());
+		dto.setCupoEsperado(entity.getCupoEsperado());
 		if (entity.getAsignatura() != null)
 			dto.setAsignaturaId(entity.getAsignatura().getIdAsginatura());
 		return dto;
@@ -113,6 +113,7 @@ public final class DtoMapper {
 	public static void copy(GrupoDTO dto, Grupo entity) {
 		entity.setNumeroGrupo(dto.getNumeroGrupo());
 		entity.setEstado(dto.getEstado());
+		entity.setCupoEsperado(dto.getCupoEsperado());
 	}
 
 	public static RequisitoAsignaturaDTO toDto(RequisitoAsignatura entity) {
@@ -167,6 +168,9 @@ public final class DtoMapper {
 		dto.setDuracionSesionMinutos(entity.getDuracionSesionMinutos());
 		dto.setMaxSesionesSemanales(entity.getMaxSesionesSemanales());
 		dto.setEvitarDiasConsecutivos(entity.isEvitarDiasConsecutivos());
+		dto.setCupoMinimoGrupo(entity.getCupoMinimoGrupo());
+		dto.setCupoMaximoGrupo(entity.getCupoMaximoGrupo());
+		dto.setToleranciaCupoPorcentaje(entity.getToleranciaCupoPorcentaje());
 		return dto;
 	}
 
@@ -180,6 +184,26 @@ public final class DtoMapper {
 		entity.setDuracionSesionMinutos(dto.getDuracionSesionMinutos());
 		entity.setMaxSesionesSemanales(dto.getMaxSesionesSemanales());
 		entity.setEvitarDiasConsecutivos(dto.isEvitarDiasConsecutivos());
+		entity.setCupoMinimoGrupo(dto.getCupoMinimoGrupo());
+		entity.setCupoMaximoGrupo(dto.getCupoMaximoGrupo());
+		entity.setToleranciaCupoPorcentaje(dto.getToleranciaCupoPorcentaje());
+	}
+
+	public static DisponibilidadDocenteDTO toDto(DisponibilidadDocente entity) {
+		DisponibilidadDocenteDTO dto = new DisponibilidadDocenteDTO();
+		dto.setIdDisponibilidad(entity.getIdDisponibilidad());
+		dto.setDiaSemana(entity.getDiaSemana());
+		dto.setHoraInicio(entity.getHoraInicio());
+		dto.setHoraFin(entity.getHoraFin());
+		if (entity.getDocente() != null)
+			dto.setDocenteId(entity.getDocente().getId());
+		return dto;
+	}
+
+	public static void copy(DisponibilidadDocenteDTO dto, DisponibilidadDocente entity) {
+		entity.setDiaSemana(dto.getDiaSemana());
+		entity.setHoraInicio(dto.getHoraInicio());
+		entity.setHoraFin(dto.getHoraFin());
 	}
 
 	public static AdministradorDTO toDto(Administrador entity) {

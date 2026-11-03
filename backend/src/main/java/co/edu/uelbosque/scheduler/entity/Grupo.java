@@ -28,6 +28,7 @@ public class Grupo {
 	private String numeroGrupo;
 	@Enumerated(EnumType.STRING)
 	private EstadoGrupo estado;
+	private int cupoEsperado;
 
 	@ManyToOne(fetch = FetchType.LAZY, optional = false)
 	@JoinColumn(name = "asignatura_id", nullable = false)
@@ -70,6 +71,14 @@ public class Grupo {
 
 	public void setEstado(EstadoGrupo estado) {
 		this.estado = estado;
+	}
+
+	public int getCupoEsperado() {
+		return cupoEsperado;
+	}
+
+	public void setCupoEsperado(int cupoEsperado) {
+		this.cupoEsperado = cupoEsperado;
 	}
 
 	public Asignatura getAsignatura() {

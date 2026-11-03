@@ -15,6 +15,9 @@ public class ConfiguracionHorariosDTO {
 	private int duracionSesionMinutos;
 	private int maxSesionesSemanales;
 	private boolean evitarDiasConsecutivos;
+	private int cupoMinimoGrupo = 10;
+	private int cupoMaximoGrupo = 40;
+	private int toleranciaCupoPorcentaje = 10;
 
 	public ConfiguracionHorariosDTO() {
 
@@ -130,6 +133,30 @@ public class ConfiguracionHorariosDTO {
 		this.evitarDiasConsecutivos = evitarDiasConsecutivos;
 	}
 
+	public int getCupoMinimoGrupo() {
+		return cupoMinimoGrupo;
+	}
+
+	public void setCupoMinimoGrupo(int cupoMinimoGrupo) {
+		this.cupoMinimoGrupo = cupoMinimoGrupo;
+	}
+
+	public int getCupoMaximoGrupo() {
+		return cupoMaximoGrupo;
+	}
+
+	public void setCupoMaximoGrupo(int cupoMaximoGrupo) {
+		this.cupoMaximoGrupo = cupoMaximoGrupo;
+	}
+
+	public int getToleranciaCupoPorcentaje() {
+		return toleranciaCupoPorcentaje;
+	}
+
+	public void setToleranciaCupoPorcentaje(int toleranciaCupoPorcentaje) {
+		this.toleranciaCupoPorcentaje = toleranciaCupoPorcentaje;
+	}
+
 	@Override
 	public boolean equals(Object obj) {
 		if (this == obj)
@@ -146,7 +173,9 @@ public class ConfiguracionHorariosDTO {
 				&& Objects.equals(horaFinDescanso, other.horaFinDescanso)
 				&& Objects.equals(duracionSesionMinutos, other.duracionSesionMinutos)
 				&& Objects.equals(maxSesionesSemanales, other.maxSesionesSemanales)
-				&& Objects.equals(evitarDiasConsecutivos, other.evitarDiasConsecutivos);
+				&& Objects.equals(evitarDiasConsecutivos, other.evitarDiasConsecutivos)
+				&& cupoMinimoGrupo == other.cupoMinimoGrupo && cupoMaximoGrupo == other.cupoMaximoGrupo
+				&& toleranciaCupoPorcentaje == other.toleranciaCupoPorcentaje;
 	}
 
 	@Override

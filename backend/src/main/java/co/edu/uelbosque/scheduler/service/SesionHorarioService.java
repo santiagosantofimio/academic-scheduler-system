@@ -20,15 +20,18 @@ public class SesionHorarioService extends AbstractCrudService<SesionHorario, Ses
 	private final DocenteRepository docentes;
 	private final ConfiguracionHorariosRepository configuraciones;
 	private final RequisitoAsignaturaService requisitos;
+	private final DisponibilidadDocenteRepository disponibilidades;
 
 	public SesionHorarioService(SesionHorarioRepository rep, GrupoRepository grupos, DocenteRepository docentes,
-			ConfiguracionHorariosRepository configuraciones, RequisitoAsignaturaService requisitos) {
+			ConfiguracionHorariosRepository configuraciones, RequisitoAsignaturaService requisitos,
+			DisponibilidadDocenteRepository disponibilidades) {
 		super(rep, "SesionHorario", configuraciones);
 		this.rep = rep;
 		this.grupos = grupos;
 		this.docentes = docentes;
 		this.configuraciones = configuraciones;
 		this.requisitos = requisitos;
+		this.disponibilidades = disponibilidades;
 	}
 
 	@Override
@@ -48,8 +51,6 @@ public class SesionHorarioService extends AbstractCrudService<SesionHorario, Ses
 
 	@Override
 	protected void aplicar(SesionHorarioDTO data, SesionHorario entity, boolean nuevo) {
-		// Todas las escrituras de programacion toman el mismo bloqueo institucional
-		// primero.
 		List<ConfiguracionHorarios> configuracion = configuraciones.bloquearConfiguraciones();
 		verificarHorario(data.getHoraInicio(), data.getHoraFin());
 		verificarEstado(data.getEstado());
@@ -115,13 +116,11 @@ public class SesionHorarioService extends AbstractCrudService<SesionHorario, Ses
 		ConfiguracionHorarios config = ConfiguracionHorariosService.unica(configuraciones.findAll());
 		List<SesionHorario> actuales = activasDocente(id);
 		return docente.isEstado() && ReglasHorario.franja(config, dia, inicio, fin)
+				&& ReglasHorario.dentroDeDisponibilidad(disponibilidades.findByDocenteId(id), dia, inicio, fin)
 				&& actuales.stream().noneMatch(s -> cruce(s, dia, inicio, fin)) && segundos(actuales) + Duration
 						.between(inicio, fin).getSeconds() <= docente.getHorasMaximasDocenciaSemanal() * 3600L;
 	}
 
-	/**
-	 * true significa que existe un cruce, consistente con verificarCruceHorario.
-	 */
 	public boolean validarCruceDocente(Long id, DayOfWeek dia, LocalTime inicio, LocalTime fin) {
 		verificarId(id);
 		verificarHorario(inicio, fin);
@@ -136,7 +135,6 @@ public class SesionHorarioService extends AbstractCrudService<SesionHorario, Ses
 		return ReglasHorario.franja(ConfiguracionHorariosService.unica(configuraciones.findAll()), dia, inicio, fin);
 	}
 
-	/** El Long identifica al grupo; la restriccion se aplica a sus sesiones. */
 	public boolean validarDiasConsecutivos(Long grupoId, DayOfWeek dia) {
 		grupoRequerido(grupoId);
 		if (dia == null)
@@ -146,10 +144,6 @@ public class SesionHorarioService extends AbstractCrudService<SesionHorario, Ses
 				|| activasGrupo(grupoId).stream().noneMatch(s -> ReglasHorario.consecutivos(s.getDiaSemana(), dia));
 	}
 
-	/**
-	 * Completa sesiones faltantes, conserva las existentes y persiste solo una
-	 * solucion completa.
-	 */
 	@Transactional
 	public List<SesionHorarioDTO> generarHorarioGrupo(Long grupoId) {
 		verificarGrupo(grupoId);
@@ -158,6 +152,8 @@ public class SesionHorarioService extends AbstractCrudService<SesionHorario, Ses
 		Docente docente = docenteParaProgramar(grupo, true);
 		List<SesionHorario> existentes = activasGrupo(grupoId);
 		List<SesionHorario> delDocente = activasDocente(docente.getId());
+		if (!ReglasHorario.cupoValido(config, grupo.getCupoEsperado()))
+			throw new DatosInvalidosException("El cupo esperado del grupo esta fuera del rango institucional");
 		int necesarias = grupo.getAsignatura().getSesionesSemanales();
 		verificarSesionesSemanales(necesarias);
 		if (necesarias > config.getMaxSesionesSemanales() || existentes.size() > necesarias)
@@ -168,22 +164,22 @@ public class SesionHorarioService extends AbstractCrudService<SesionHorario, Ses
 		int faltantes = necesarias - existentes.size();
 		if (faltantes == 0)
 			return ordenadas(existentes);
+		List<DisponibilidadDocente> ventanas = disponibilidades.findByDocenteId(docente.getId());
 		long segundosNuevos = (long) faltantes * config.getDuracionSesionMinutos() * 60;
 		if (segundos(delDocente) + segundosNuevos > docente.getHorasMaximasDocenciaSemanal() * 3600L)
 			throw new DisponibilidadInvalidaException("La generacion excederia la carga semanal del docente");
 
 		List<List<SesionHorario>> opciones = new ArrayList<>();
-		boolean[] ocupados = new boolean[6];
+		int[] ocupados = new int[6];
 		for (int d = 1; d <= 6; d++) {
 			DayOfWeek dia = DayOfWeek.of(d);
-			ocupados[d - 1] = existentes.stream().anyMatch(s -> s.getDiaSemana() == dia);
+			ocupados[d - 1] = (int) existentes.stream().filter(s -> s.getDiaSemana() == dia).count();
 			boolean bloqueado = config.isEvitarDiasConsecutivos()
 					&& existentes.stream().anyMatch(s -> ReglasHorario.consecutivos(s.getDiaSemana(), dia));
-			opciones.add(bloqueado ? List.of() : espaciosLibres(config, grupo, dia, delDocente));
+			opciones.add(bloqueado ? List.of() : espaciosLibres(config, grupo, dia, delDocente, ventanas));
 		}
-		List<SesionHorario> nuevas = new ArrayList<>();
-		if (!seleccionar(0, faltantes, false, config.isEvitarDiasConsecutivos(), ocupados, opciones, nuevas,
-				new HashSet<>()))
+		List<SesionHorario> nuevas = distribuir(faltantes, config.isEvitarDiasConsecutivos(), ocupados, opciones);
+		if (nuevas.isEmpty())
 			throw new DisponibilidadInvalidaException(
 					"No existe espacio suficiente para completar el grupo con las restricciones actuales; no se guardaron sesiones parciales");
 		List<SesionHorario> completas = new ArrayList<>(existentes);
@@ -198,6 +194,11 @@ public class SesionHorarioService extends AbstractCrudService<SesionHorario, Ses
 		if (!Duration.between(candidata.getHoraInicio(), candidata.getHoraFin())
 				.equals(Duration.ofMinutes(config.getDuracionSesionMinutos())))
 			throw new HorarioInvalidoException("La sesion no tiene la duracion institucional");
+		if (!ReglasHorario.cupoValido(config, grupo.getCupoEsperado()))
+			throw new DatosInvalidosException("El cupo esperado del grupo esta fuera del rango institucional");
+		if (!ReglasHorario.dentroDeDisponibilidad(disponibilidades.findByDocenteId(docente.getId()),
+				candidata.getDiaSemana(), candidata.getHoraInicio(), candidata.getHoraFin()))
+			throw new DisponibilidadInvalidaException("El docente no esta disponible en esa franja");
 		List<SesionHorario> otrasGrupo = sinActual(delGrupo, candidata);
 		List<SesionHorario> otrasDocente = sinActual(delDocente, candidata);
 		verificarCruceHorario(otrasGrupo.stream()
@@ -263,8 +264,23 @@ public class SesionHorarioService extends AbstractCrudService<SesionHorario, Ses
 	private record Franja(LocalTime inicio, LocalTime fin) {
 	}
 
+	private static List<Franja> fueraDeDisponibilidad(List<DisponibilidadDocente> ventanas, DayOfWeek dia,
+			LocalTime comienzo, LocalTime termino) {
+		List<Franja> bloqueadas = new ArrayList<>();
+		LocalTime cursor = comienzo;
+		for (DisponibilidadDocente ventana : ReglasHorario.delDia(ventanas, dia)) {
+			if (ventana.getHoraInicio().isAfter(cursor))
+				bloqueadas.add(new Franja(cursor, ventana.getHoraInicio()));
+			if (ventana.getHoraFin().isAfter(cursor))
+				cursor = ventana.getHoraFin();
+		}
+		if (cursor.isBefore(termino))
+			bloqueadas.add(new Franja(cursor, termino));
+		return bloqueadas;
+	}
+
 	private static List<SesionHorario> espaciosLibres(ConfiguracionHorarios config, Grupo grupo, DayOfWeek dia,
-			List<SesionHorario> existentes) {
+			List<SesionHorario> existentes, List<DisponibilidadDocente> ventanas) {
 		LocalTime comienzo = ReglasHorario.inicio(config, dia), termino = ReglasHorario.fin(config, dia);
 		List<Franja> ocupadas = new ArrayList<>();
 		for (SesionHorario sesion : existentes)
@@ -272,6 +288,8 @@ public class SesionHorarioService extends AbstractCrudService<SesionHorario, Ses
 				ocupadas.add(new Franja(sesion.getHoraInicio(), sesion.getHoraFin()));
 		if (config.getHoraInicioDescanso() != null)
 			ocupadas.add(new Franja(config.getHoraInicioDescanso(), config.getHoraFinDescanso()));
+		if (!ventanas.isEmpty())
+			ocupadas.addAll(fueraDeDisponibilidad(ventanas, dia, comienzo, termino));
 		ocupadas.sort(Comparator.comparing(Franja::inicio));
 		List<SesionHorario> libres = new ArrayList<>();
 		LocalTime cursor = comienzo;
@@ -306,8 +324,22 @@ public class SesionHorarioService extends AbstractCrudService<SesionHorario, Ses
 	private record EstadoBusqueda(int dia, int restantes, boolean previo) {
 	}
 
-	private static boolean seleccionar(int dia, int restantes, boolean previo, boolean evitar, boolean[] existentes,
-			List<List<SesionHorario>> opciones, List<SesionHorario> seleccionadas, Set<EstadoBusqueda> descartados) {
+	private static List<SesionHorario> distribuir(int faltantes, boolean evitar, int[] ocupados,
+			List<List<SesionHorario>> opciones) {
+		int limiteMaximo = Arrays.stream(ocupados).max().orElse(0) + faltantes;
+		for (int limite = 1; limite <= limiteMaximo; limite++) {
+			for (boolean separar : evitar ? List.of(true) : List.of(true, false)) {
+				List<SesionHorario> nuevas = new ArrayList<>();
+				if (seleccionar(0, faltantes, false, separar, limite, ocupados, opciones, nuevas, new HashSet<>()))
+					return nuevas;
+			}
+		}
+		return List.of();
+	}
+
+	private static boolean seleccionar(int dia, int restantes, boolean previo, boolean evitar, int limite,
+			int[] existentes, List<List<SesionHorario>> opciones, List<SesionHorario> seleccionadas,
+			Set<EstadoBusqueda> descartados) {
 		if (restantes == 0)
 			return true;
 		if (dia == opciones.size())
@@ -320,13 +352,14 @@ public class SesionHorarioService extends AbstractCrudService<SesionHorario, Ses
 			disponibles += opciones.get(i).size();
 		if (disponibles < restantes)
 			return false;
-		for (int cantidad = Math.min(restantes, opciones.get(dia).size()); cantidad >= 0; cantidad--) {
-			boolean usado = existentes[dia] || cantidad > 0;
+		int cupoDia = Math.max(0, limite - existentes[dia]);
+		for (int cantidad = Math.min(restantes, Math.min(cupoDia, opciones.get(dia).size())); cantidad >= 0; cantidad--) {
+			boolean usado = existentes[dia] > 0 || cantidad > 0;
 			if (evitar && previo && usado)
 				continue;
 			int anterior = seleccionadas.size();
 			seleccionadas.addAll(opciones.get(dia).subList(0, cantidad));
-			if (seleccionar(dia + 1, restantes - cantidad, usado, evitar, existentes, opciones, seleccionadas,
+			if (seleccionar(dia + 1, restantes - cantidad, usado, evitar, limite, existentes, opciones, seleccionadas,
 					descartados))
 				return true;
 			seleccionadas.subList(anterior, seleccionadas.size()).clear();

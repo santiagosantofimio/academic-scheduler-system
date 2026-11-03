@@ -18,6 +18,7 @@ public class GrupoDTO {
 	private long idGrupo;
 	private String numeroGrupo;
 	private EstadoGrupo estado;
+	private int cupoEsperado;
 	private Long asignaturaId;
 
 	public GrupoDTO() {
@@ -59,6 +60,14 @@ public class GrupoDTO {
 		this.estado = estado;
 	}
 
+	public int getCupoEsperado() {
+		return cupoEsperado;
+	}
+
+	public void setCupoEsperado(int cupoEsperado) {
+		this.cupoEsperado = cupoEsperado;
+	}
+
 	public Long getAsignaturaId() {
 		return asignaturaId;
 	}
@@ -75,13 +84,13 @@ public class GrupoDTO {
 			return false;
 		GrupoDTO other = (GrupoDTO) obj;
 		return Objects.equals(idGrupo, other.idGrupo) && Objects.equals(numeroGrupo, other.numeroGrupo)
-				&& Objects.equals(estado, other.estado) && Objects.equals(asignaturaId, other.asignaturaId)
-				&& Objects.equals(docenteId, other.docenteId);
+				&& Objects.equals(estado, other.estado) && cupoEsperado == other.cupoEsperado
+				&& Objects.equals(asignaturaId, other.asignaturaId) && Objects.equals(docenteId, other.docenteId);
 	}
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(idGrupo, numeroGrupo, estado, asignaturaId, docenteId);
+		return Objects.hash(idGrupo, numeroGrupo, estado, cupoEsperado, asignaturaId, docenteId);
 	}
 
 	@Override

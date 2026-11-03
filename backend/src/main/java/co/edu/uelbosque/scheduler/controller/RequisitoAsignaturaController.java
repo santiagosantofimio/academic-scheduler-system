@@ -99,7 +99,6 @@ public class RequisitoAsignaturaController {
 		return ResponseEntity.status(201).body("RequisitoAsignatura registrado");
 	}
 
-	/** Sobrecarga escalar del UML; la API HTTP utiliza el DTO documentado. */
 	public ResponseEntity<String> crearRequisito(Long asignaturaId, TipoRequisito tipoRequisito, String descripcion,
 			String areaConocimiento, NivelFormacion nivelFormacionMinimo, int aniosExperienciaMinima) {
 		RequisitoAsignaturaDTO data = new RequisitoAsignaturaDTO(tipoRequisito, descripcion, areaConocimiento,

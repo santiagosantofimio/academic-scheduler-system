@@ -39,6 +39,13 @@ class SeguridadTest {
     @RestController static class RecursoDePrueba {
         @GetMapping("/api/prueba") String leer() { return "ok"; }
         @PostMapping("/api/prueba") String escribir() { return "guardado"; }
+        @GetMapping("/api/sesiones") String sesiones() { return "ok"; }
+        @PostMapping("/api/sesiones") String crearSesion() { return "guardado"; }
+        @GetMapping("/api/docentes") String docentes() { return "ok"; }
+        @GetMapping("/api/usuarios/actual") String actual() { return "ok"; }
+        @GetMapping("/api/mi-horario") String miHorario() { return "ok"; }
+        @GetMapping("/api/mi-horario/exportar/pdf") String miPdf() { return "ok"; }
+        @PostMapping("/api/mi-horario") String escribirMiHorario() { return "guardado"; }
     }
     @BeforeEach void preparar() {
         contexto=new AnnotationConfigWebApplicationContext(); contexto.setServletContext(new MockServletContext());
@@ -50,6 +57,29 @@ class SeguridadTest {
         mvc.perform(get("/api/prueba")).andExpect(status().isUnauthorized());
         mvc.perform(get("/api/prueba").with(httpBasic("docente-prueba","clave-prueba"))).andExpect(status().isForbidden());
         mvc.perform(get("/api/prueba").with(httpBasic("admin-prueba","clave-prueba"))).andExpect(status().isOk());
+    }
+    @Test void docenteSoloLeeSuHorario() throws Exception {
+        mvc.perform(get("/api/mi-horario").with(httpBasic("docente-prueba","clave-prueba"))).andExpect(status().isOk());
+        mvc.perform(get("/api/mi-horario/exportar/pdf").with(httpBasic("docente-prueba","clave-prueba"))).andExpect(status().isOk());
+        mvc.perform(get("/api/usuarios/actual").with(httpBasic("docente-prueba","clave-prueba"))).andExpect(status().isOk());
+        mvc.perform(get("/api/sesiones").with(httpBasic("docente-prueba","clave-prueba"))).andExpect(status().isForbidden());
+        mvc.perform(get("/api/docentes").with(httpBasic("docente-prueba","clave-prueba"))).andExpect(status().isForbidden());
+        mvc.perform(post("/api/mi-horario").with(httpBasic("docente-prueba","clave-prueba")).with(csrf())).andExpect(status().isForbidden());
+        mvc.perform(post("/api/sesiones").with(httpBasic("docente-prueba","clave-prueba")).with(csrf())).andExpect(status().isForbidden());
+    }
+    @Test void administradorGestionaPeroNoTieneHorarioPropio() throws Exception {
+        mvc.perform(post("/api/sesiones").with(httpBasic("admin-prueba","clave-prueba")).with(csrf())).andExpect(status().isOk());
+        mvc.perform(get("/api/sesiones").with(httpBasic("admin-prueba","clave-prueba"))).andExpect(status().isOk());
+        mvc.perform(get("/api/mi-horario").with(httpBasic("admin-prueba","clave-prueba"))).andExpect(status().isForbidden());
+        mvc.perform(get("/api/mi-horario")).andExpect(status().isUnauthorized());
+        mvc.perform(get("/api/usuarios/actual")).andExpect(status().isUnauthorized());
+    }
+    @Test void laAplicacionWebNoRecibeRetoQueAbraElDialogoDelNavegador() throws Exception {
+        mvc.perform(get("/api/sesiones").with(httpBasic("admin-prueba","incorrecta")).header("X-Requested-With","XMLHttpRequest"))
+                .andExpect(status().isUnauthorized()).andExpect(header().doesNotExist("WWW-Authenticate"))
+                .andExpect(jsonPath("$.status").value(401));
+        mvc.perform(get("/api/sesiones").with(httpBasic("admin-prueba","incorrecta")))
+                .andExpect(status().isUnauthorized()).andExpect(header().exists("WWW-Authenticate"));
     }
     @Test void inactivoYPasswordIncorrectoNoAutentican() throws Exception {
         mvc.perform(get("/api/prueba").with(httpBasic("inactivo-prueba","clave-prueba"))).andExpect(status().isUnauthorized());
