@@ -41,6 +41,37 @@ describe('Servicios academicos y serializacion', () => {
     expect(req.request.method).toBe('GET');
     req.flush([]);
   });
+  it('consulta la disponibilidad por el parametro valor del controlador', () => {
+    api.disponibilidadDocente(8).subscribe();
+    const req = http.expectOne('/api/disponibilidades/por-docente?valor=8');
+    expect(req.request.method).toBe('GET');
+    req.flush([]);
+  });
+  it('el horario docente usa solo su endpoint propio', () => {
+    let result: { sesiones: unknown[]; planes: unknown[]; docentes: { id?: number }[] } | undefined;
+    api
+      .horarioDocente({ id: 8, correo: 'docente@example.test', nombre: 'Luis', rol: 'DOCENTE' })
+      .subscribe((data) => (result = data));
+    const req = http.expectOne('/api/mi-horario');
+    expect(req.request.method).toBe('GET');
+    req.flush({ configuracion: null, asignaturas: [], grupos: [], sesiones: [{ idSesion: 1 }] });
+    expect(result?.sesiones.length).toBe(1);
+    expect(result?.planes).toEqual([]);
+    expect(result?.docentes[0].id).toBe(8);
+  });
+  it('el docente exporta su horario sin indicar a quien pertenece', () => {
+    api.exportarMiHorario('csv').subscribe();
+    const req = http.expectOne('/api/mi-horario/exportar/csv');
+    expect(req.request.responseType).toBe('blob');
+    req.flush(new Blob(['x']));
+  });
+  it('exporta como archivo y omite los filtros vacios', () => {
+    api.exportar('pdf', { grupo: 3, docente: 0 }).subscribe();
+    const req = http.expectOne('/api/sesiones/exportar/pdf?grupo=3');
+    expect(req.request.method).toBe('GET');
+    expect(req.request.responseType).toBe('blob');
+    req.flush(new Blob(['%PDF']));
+  });
   it('genera por grupo mediante POST y recibe sesiones JSON', () => {
     let count = 0;
     api.generar(9).subscribe((data) => (count = data.length));

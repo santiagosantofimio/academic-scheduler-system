@@ -47,7 +47,6 @@ export interface PlanEstudiosDTO {
   estado: boolean;
 }
 export interface AsignaturaDTO {
-  // Se conserva la grafia del contrato Java.
   idAsginatura?: number;
   codigo: string;
   nombre: string;
@@ -62,6 +61,7 @@ export interface GrupoDTO {
   idGrupo?: number;
   numeroGrupo: string;
   estado: 'ACTIVO' | 'INACTIVO';
+  cupoEsperado: number;
   asignaturaId: number;
   docenteId: number | null;
 }
@@ -83,6 +83,13 @@ export interface ExperienciaDocenteDTO {
   descripcion: string;
   fechaInicio: string;
   fechaFin: string | null;
+  docenteId: number;
+}
+export interface DisponibilidadDocenteDTO {
+  idDisponibilidad?: number;
+  diaSemana: DiaSemana;
+  horaInicio: string;
+  horaFin: string;
   docenteId: number;
 }
 export interface RequisitoAsignaturaDTO {
@@ -113,6 +120,14 @@ export interface ConfiguracionHorariosDTO {
   duracionSesionMinutos: number;
   maxSesionesSemanales: number;
   evitarDiasConsecutivos: boolean;
+  cupoMinimoGrupo: number;
+  cupoMaximoGrupo: number;
+  toleranciaCupoPorcentaje: number;
+}
+export type FormatoExportacion = 'csv' | 'pdf';
+export interface FiltrosExportacion {
+  grupo?: number;
+  docente?: number;
 }
 export interface TokenCsrf {
   headerName: string;
@@ -120,9 +135,23 @@ export interface TokenCsrf {
   token: string;
 }
 export interface SesionUsuario {
+  id: number;
   correo: string;
   nombre: string;
   rol: Rol;
+}
+export interface UsuarioActualDTO {
+  id: number;
+  nombre: string;
+  apellido: string;
+  correoInstitucional: string;
+  rol: Rol;
+}
+export interface HorarioDocenteDTO {
+  configuracion: ConfiguracionHorariosDTO | null;
+  asignaturas: AsignaturaDTO[];
+  grupos: GrupoDTO[];
+  sesiones: SesionHorarioDTO[];
 }
 export interface DatosPlaneacion {
   docentes: DocenteDTO[];
@@ -155,7 +184,7 @@ export const REQUISITOS: TipoRequisito[] = [
   'EXPERIENCIA_INVESTIGATIVA',
 ];
 export function etiqueta(valor: unknown): string {
-  if (valor === null || valor === undefined || valor === '') return '—';
+  if (valor === null || valor === undefined || valor === '') return '-';
   if (typeof valor === 'boolean') return valor ? 'Activo' : 'Inactivo';
   return String(valor)
     .replaceAll('_', ' ')

@@ -1,7 +1,6 @@
 <header class="page-heading">
   <div>
-    <p class="eyebrow">PLANEACIÓN ACADÉMICA</p>
-    <h1>Una semana bien organizada</h1>
+    <h1>Resumen de la planeación</h1>
     <p class="muted">Consulta la programación y prepara los próximos horarios.</p>
   </div>
   <a routerLink="/horarios" class="button button-primary"
@@ -52,7 +51,7 @@
         <select aria-label="Filtrar horario por grupo" [(ngModel)]="groupFilter">
           <option [ngValue]="0">Todos los grupos</option>
           <option *ngFor="let g of data.grupos" [ngValue]="g.idGrupo">
-            Grupo {{ g.numeroGrupo }} · #{{ g.idGrupo }}
+            {{ nombreGrupo(g) }}
           </option>
         </select>
       </header>
@@ -69,7 +68,7 @@
     </section>
     <aside class="planning-aside">
       <section class="panel side-panel">
-        <p class="eyebrow">AVANCE DE PROGRAMACIÓN</p>
+        <h2>Avance de programación</h2>
         <div class="progress-heading">
           <strong
             >{{ completos }} <span>/ {{ gruposActivos }}</span></strong

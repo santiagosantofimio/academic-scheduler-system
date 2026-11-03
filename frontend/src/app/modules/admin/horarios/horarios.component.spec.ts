@@ -14,9 +14,9 @@ describe('Revisión del horario', () => {
       docentes: [{ id: 1, nombre: 'Docente', apellido: 'Prueba', numeroDocumento: '1', correoInstitucional: 'prueba@example.test', estado: true, tipoVinculacion: 'MEDIO_TIEMPO', escalafon: 'Prueba', especialidad: 'Prueba', horasMaximasDocenciaSemanal: 10 }],
       planes: [],
       asignaturas: [{ idAsginatura: 1, codigo: 'P', nombre: 'Prueba', semestre: 1, creditos: 1, sesionesSemanales: 4, areaConocimiento: 'Prueba', estado: true, planEstudiosId: 1 }],
-      grupos: [{ idGrupo: 1, numeroGrupo: '01', estado: 'ACTIVO', asignaturaId: 1, docenteId: 1 }, { idGrupo: 2, numeroGrupo: '02', estado: 'ACTIVO', asignaturaId: 1, docenteId: 1 }],
+      grupos: [{ idGrupo: 1, numeroGrupo: '01', estado: 'ACTIVO', cupoEsperado: 30, asignaturaId: 1, docenteId: 1 }, { idGrupo: 2, numeroGrupo: '02', estado: 'ACTIVO', cupoEsperado: 30, asignaturaId: 1, docenteId: 1 }],
       sesiones: [first],
-      configuracion: { horaInicioSemana: '08:00', horaFinSemana: '18:00', horaInicioSabado: '08:00', horaFinSabado: '12:00', horaInicioDescanso: null, horaFinDescanso: null, duracionSesionMinutos: 60, maxSesionesSemanales: 4, evitarDiasConsecutivos: false },
+      configuracion: { horaInicioSemana: '08:00', horaFinSemana: '18:00', horaInicioSabado: '08:00', horaFinSabado: '12:00', horaInicioDescanso: null, horaFinDescanso: null, duracionSesionMinutos: 60, maxSesionesSemanales: 4, evitarDiasConsecutivos: false, cupoMinimoGrupo: 10, cupoMaximoGrupo: 40, toleranciaCupoPorcentaje: 10 },
     };
     const api = { planeacion: () => of(data), generar: () => of([second]), sesiones: { eliminar: () => of('') } } as unknown as AcademicoService;
     const revision = new ValidacionHorarioService();

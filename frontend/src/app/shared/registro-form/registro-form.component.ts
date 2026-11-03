@@ -14,6 +14,7 @@ import {
   entero,
   noFutura,
   ordenFechas,
+  ordenHoras,
   passwordBytes,
   sinBlancos,
 } from '../form-validators';
@@ -84,6 +85,8 @@ export class RegistroFormComponent implements OnChanges, OnDestroy {
     this.form = this.fb.group(controls);
     if (this.form.get('fechaInicio') && this.form.get('fechaFin'))
       this.form.addValidators(ordenFechas('fechaInicio', 'fechaFin'));
+    if (this.form.get('horaInicio') && this.form.get('horaFin'))
+      this.form.addValidators(ordenHoras('horaInicio', 'horaFin'));
     if (this.form.get('tipoRequisito')) {
       const update = (): void => {
         const control = this.form.get('nivelFormacionMinimo');

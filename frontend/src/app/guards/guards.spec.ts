@@ -26,6 +26,6 @@ describe('Permisos de rutas', () => {
   });
   it('el docente no puede entrar a las pantallas administrativas', () => {
     const guard = new AdminGuard({ usuario: { rol: 'DOCENTE' } } as AuthService, router);
-    expect(router.serializeUrl(guard.canActivate() as UrlTree)).toBe('/cuenta');
+    expect(router.serializeUrl(guard.canActivate() as UrlTree)).toBe('/mi-horario');
   });
 });

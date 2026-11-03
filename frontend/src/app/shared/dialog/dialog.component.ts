@@ -21,10 +21,7 @@ let nextDialog = 0;
     (click)="backdrop($event)"
   >
     <header class="dialog-heading">
-      <div>
-        <p class="eyebrow">SIS GEN</p>
-        <h2 [id]="headingId">{{ title }}</h2>
-      </div>
+      <h2 [id]="headingId">{{ title }}</h2>
       <button
         type="button"
         class="icon-button"

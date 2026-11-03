@@ -21,6 +21,13 @@ export function fechaActual(): string {
 }
 export const noFutura: ValidatorFn = (control) =>
   control.value && String(control.value) > fechaActual() ? { futureDate: true } : null;
+export function ordenHoras(inicio: string, fin: string): ValidatorFn {
+  return (control: AbstractControl): ValidationErrors | null => {
+    const desde = control.get(inicio)?.value,
+      hasta = control.get(fin)?.value;
+    return desde && hasta && desde >= hasta ? { timeOrder: true } : null;
+  };
+}
 export function ordenFechas(inicio: string, fin: string): ValidatorFn {
   return (control: AbstractControl): ValidationErrors | null => {
     const desde = control.get(inicio)?.value,

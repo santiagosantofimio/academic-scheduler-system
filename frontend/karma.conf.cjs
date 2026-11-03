@@ -6,7 +6,6 @@ module.exports = function (config) {
       require('karma-chrome-launcher'),
       require('karma-coverage'),
     ],
-    // The Angular test builder serves emitted assets at /media, not /base/media.
     proxies: { '/base/media/': '/media/' },
     reporters: ['progress'],
     browsers: ['ChromeHeadless'],

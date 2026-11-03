@@ -1,0 +1,76 @@
+<header class="page-heading">
+  <div>
+    <h1>Mi horario</h1>
+    <p class="muted">Sesiones programadas de tus grupos.</p>
+  </div>
+  <div class="heading-actions">
+    <button
+      type="button"
+      class="button button-secondary"
+      [disabled]="loading"
+      (click)="exportar('csv')"
+    >
+      <app-icon name="download"></app-icon>CSV</button
+    ><button
+      type="button"
+      class="button button-secondary"
+      [disabled]="loading"
+      (click)="exportar('pdf')"
+    >
+      <app-icon name="download"></app-icon>PDF
+    </button>
+  </div>
+</header>
+<app-feedback [message]="error" kind="error" [retry]="true" (retryClick)="load()"></app-feedback>
+<div *ngIf="loading" class="loading-state" role="status">
+  <span class="spinner"></span>Cargando horario…
+</div>
+<section class="panel calendar-panel" *ngIf="!loading && !error && data">
+  <div class="table-toolbar schedule-toolbar">
+    <div class="view-toggle">
+      <button
+        type="button"
+        [class.selected]="!listView"
+        [attr.aria-pressed]="!listView"
+        (click)="listView = false"
+      >
+        Semana</button
+      ><button
+        type="button"
+        [class.selected]="listView"
+        [attr.aria-pressed]="listView"
+        (click)="listView = true"
+      >
+        Lista
+      </button>
+    </div>
+  </div>
+  <app-semana *ngIf="!listView; else list" [data]="data" [sessions]="sesiones"></app-semana>
+  <ng-template #list
+    ><div class="table-scroll" *ngIf="sesiones.length; else empty">
+      <table>
+        <thead>
+          <tr>
+            <th>Asignatura y grupo</th>
+            <th>Día</th>
+            <th>Hora</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let s of sesiones">
+            <td class="table-name">{{ grupo(s.grupoId) }}</td>
+            <td>{{ nombreDia(s.diaSemana) }}</td>
+            <td class="nowrap">{{ s.horaInicio.slice(0, 5) }} - {{ s.horaFin.slice(0, 5) }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <ng-template #empty
+      ><div class="empty-state">
+        <app-icon name="calendar"></app-icon>
+        <h2>No tienes sesiones programadas</h2>
+        <p>Cuando coordinación programe tus grupos, aparecerán aquí.</p>
+      </div></ng-template
+    ></ng-template
+  >
+</section>

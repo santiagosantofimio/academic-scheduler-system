@@ -1,14 +1,13 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
-import { BehaviorSubject, catchError, map, Observable, of, switchMap, throwError } from 'rxjs';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { BehaviorSubject, map, Observable, switchMap, throwError } from 'rxjs';
 import { environment } from '../../environments/environment';
-import { AdministradorDTO, SesionUsuario, TokenCsrf } from '../interfaces/api.models';
+import { SesionUsuario, TokenCsrf, UsuarioActualDTO } from '../interfaces/api.models';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly usuarioSubject = new BehaviorSubject<SesionUsuario | null>(null);
   readonly usuario$ = this.usuarioSubject.asObservable();
-  // HTTP Basic exige conservar el encabezado durante la sesion. Nunca se escribe en almacenamiento web.
   private autorizacion: string | null = null;
   private csrf: TokenCsrf | null = null;
   constructor(private readonly http: HttpClient) {}
@@ -33,40 +32,19 @@ export class AuthService {
         switchMap((csrf) => {
           if (!csrf.token || !csrf.headerName)
             return throwError(() => new Error('Respuesta CSRF invalida'));
-          // No hay /me ni roles en /csrf. Esta consulta comprueba la capacidad administrativa real.
-          // El servidor actual admite exclusivamente Administrador y Docente.
           return this.http
-            .get<AdministradorDTO[]>(
-              `${environment.apiUrl}/administradores/por-correo-institucional`,
-              {
-                headers,
-                withCredentials: true,
-                params: { valor: normalizado },
-              },
-            )
+            .get<UsuarioActualDTO>(`${environment.apiUrl}/usuarios/actual`, {
+              headers,
+              withCredentials: true,
+            })
             .pipe(
-              map((registros) => {
-                const administrador = registros.find(
-                  (a) => a.correoInstitucional.toLowerCase() === normalizado,
-                );
-                if (!administrador)
-                  throw new Error('No fue posible identificar la cuenta administrativa');
-                return this.abrir(basic, csrf, {
-                  correo: normalizado,
-                  nombre: `${administrador.nombre} ${administrador.apellido}`,
-                  rol: 'ADMINISTRADOR',
-                });
-              }),
-              catchError((error: unknown) =>
-                error instanceof HttpErrorResponse && error.status === 403
-                  ? of(
-                      this.abrir(basic, csrf, {
-                        correo: normalizado,
-                        nombre: normalizado,
-                        rol: 'DOCENTE',
-                      }),
-                    )
-                  : throwError(() => error),
+              map((usuario) =>
+                this.abrir(basic, csrf, {
+                  id: usuario.id,
+                  correo: usuario.correoInstitucional,
+                  nombre: `${usuario.nombre} ${usuario.apellido}`,
+                  rol: usuario.rol,
+                }),
               ),
             );
         }),

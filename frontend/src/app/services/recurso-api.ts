@@ -2,7 +2,6 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
 
-/** Contrato CRUD comun a los controladores Java. Las escrituras responden texto, no JSON. */
 export class RecursoApi<T> {
   readonly url: string;
   constructor(

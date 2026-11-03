@@ -16,7 +16,10 @@ describe('Navegación con módulos diferidos', () => {
       imports: [AppRoutingModule],
       providers: [
         { provide: AuthService, useValue: auth },
-        { provide: AcademicoService, useValue: { planeacion: () => NEVER } },
+        {
+          provide: AcademicoService,
+          useValue: { planeacion: () => NEVER, horarioDocente: () => NEVER },
+        },
       ],
     }).compileComponents();
   });
@@ -27,18 +30,23 @@ describe('Navegación con módulos diferidos', () => {
     expect(TestBed.inject(Router).url).toBe('/ingresar?continuar=%2Fhorarios');
   });
 
-  it('permite la cuenta docente y redirige las rutas administrativas', async () => {
-    auth.usuario = { nombre: 'Docente', correo: 'docente@example.test', rol: 'DOCENTE' };
+  it('permite la cuenta docente y redirige las rutas administrativas a su horario', async () => {
+    auth.usuario = { id: 2, nombre: 'Docente', correo: 'docente@example.test', rol: 'DOCENTE' };
     const harness = await RouterTestingHarness.create();
     await harness.navigateByUrl('/cuenta');
     expect(harness.routeNativeElement?.querySelector('app-cuenta')).toBeTruthy();
     await harness.navigateByUrl('/horarios');
-    expect(TestBed.inject(Router).url).toBe('/cuenta');
-    expect(harness.routeNativeElement?.querySelector('app-cuenta')).toBeTruthy();
+    expect(TestBed.inject(Router).url).toBe('/mi-horario');
+    expect(harness.routeNativeElement?.querySelector('app-mi-horario')).toBeTruthy();
   });
 
   it('permite al administrador entrar a inicio y redirige rutas desconocidas', async () => {
-    auth.usuario = { nombre: 'Administrador', correo: 'admin@example.test', rol: 'ADMINISTRADOR' };
+    auth.usuario = {
+      id: 1,
+      nombre: 'Administrador',
+      correo: 'admin@example.test',
+      rol: 'ADMINISTRADOR',
+    };
     const harness = await RouterTestingHarness.create();
     await harness.navigateByUrl('/inicio');
     expect(harness.routeNativeElement?.querySelector('app-inicio')).toBeTruthy();

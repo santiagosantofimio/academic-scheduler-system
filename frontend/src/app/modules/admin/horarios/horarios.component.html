@@ -1,11 +1,24 @@
 <header class="page-heading">
   <div>
-    <p class="eyebrow">PLANEACIÓN ACADÉMICA</p>
     <h1>Horarios</h1>
     <p class="muted">Genera las sesiones de un grupo o ajusta su programación semanal.</p>
   </div>
   <div class="heading-actions">
     <button
+      type="button"
+      class="button button-secondary"
+      [disabled]="loading"
+      (click)="exportar('csv')"
+    >
+      <app-icon name="download"></app-icon>CSV</button
+    ><button
+      type="button"
+      class="button button-secondary"
+      [disabled]="loading"
+      (click)="exportar('pdf')"
+    >
+      <app-icon name="download"></app-icon>PDF</button
+    ><button
       type="button"
       class="button button-secondary"
       [disabled]="loading || !!error"
@@ -104,7 +117,7 @@
             <td class="table-name">{{ grupo(s.grupoId) }}</td>
             <td>{{ docente(s.grupoId) }}</td>
             <td>{{ nombreDia(s.diaSemana) }}</td>
-            <td class="nowrap">{{ s.horaInicio.slice(0, 5) }}–{{ s.horaFin.slice(0, 5) }}</td>
+            <td class="nowrap">{{ s.horaInicio.slice(0, 5) }} - {{ s.horaFin.slice(0, 5) }}</td>
             <td>
               <span class="badge" [class.badge-muted]="s.estado === 'CANCELADA'">{{
                 s.estado === 'PROGRAMADA' ? 'Programada' : 'Cancelada'
@@ -269,7 +282,7 @@
       La hora final debe ser posterior a la inicial.
     </p>
     <p class="hint">
-      El servidor verificará la franja, la duración, los cruces y la capacidad del docente antes de
+      El servidor verificará la franja, la duración, los cruces y la carga del docente antes de
       guardar.
     </p>
     <div class="dialog-actions">

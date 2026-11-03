@@ -100,6 +100,7 @@ export const CATALOGOS: Record<CatalogoKey, CatalogoDefinicion> = {
       { key: 'numeroGrupo', label: 'Grupo' },
       { key: 'asignaturaId', label: 'Asignatura' },
       { key: 'docenteId', label: 'Docente asignado' },
+      { key: 'cupoEsperado', label: 'Cupo esperado' },
       { key: 'estado', label: 'Estado' },
     ],
     fields: [
@@ -110,6 +111,10 @@ export const CATALOGOS: Record<CatalogoKey, CatalogoDefinicion> = {
         type: 'select',
         required: true,
         options: opciones(['ACTIVO', 'INACTIVO']),
+      },
+      {
+        ...campoNumero('cupoEsperado', 'Cupo esperado'),
+        hint: 'Debe estar dentro del rango definido en la configuración.',
       },
       { key: 'asignaturaId', label: 'Asignatura', type: 'select', required: true, full: true },
       {

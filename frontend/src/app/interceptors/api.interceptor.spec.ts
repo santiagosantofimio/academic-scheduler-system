@@ -41,6 +41,7 @@ describe('Cabeceras y limites del interceptor', () => {
     const req = http.expectOne('/api/grupos');
     expect(req.request.headers.get('Authorization')).toBe('Basic prueba');
     expect(req.request.headers.get('X-CSRF-TOKEN')).toBe('csrf-prueba');
+    expect(req.request.headers.get('X-Requested-With')).toBe('XMLHttpRequest');
     expect(req.request.withCredentials).toBeTrue();
     req.flush({});
   });

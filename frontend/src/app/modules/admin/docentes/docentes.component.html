@@ -1,6 +1,5 @@
 <header class="page-heading">
   <div>
-    <p class="eyebrow">GESTIÓN ACADÉMICA</p>
     <h1>Docentes</h1>
     <p class="muted">Información profesional, vinculación y capacidad de docencia.</p>
   </div>
@@ -126,7 +125,7 @@
 <app-dialog *ngIf="deleting" title="Eliminar docente" [busy]="busy" (close)="deleting = null"
   ><p>
     ¿Quieres eliminar a <strong>{{ deleting.nombre }} {{ deleting.apellido }}</strong
-    >? El sistema impedirá la eliminación si tiene registros relacionados.
+    >? Su formación, experiencia y disponibilidad también se eliminarán. Si tiene grupos asignados, el sistema lo impedirá: quítalo de esos grupos o desactívalo.
   </p>
   <app-feedback [message]="modalError" kind="error"></app-feedback>
   <div class="dialog-actions">
