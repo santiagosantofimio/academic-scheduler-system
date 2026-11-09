@@ -10,6 +10,6 @@ export class AdminGuard implements CanActivate {
   canActivate(): boolean | UrlTree {
     return this.auth.usuario?.rol === 'ADMINISTRADOR'
       ? true
-      : this.router.createUrlTree(['/cuenta']);
+      : this.router.createUrlTree(['/mi-horario']);
   }
 }

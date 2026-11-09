@@ -7,7 +7,6 @@
 <ng-container *ngIf="!loading && !error && docente">
   <header class="page-heading">
     <div>
-      <p class="eyebrow">FICHA DEL DOCENTE</p>
       <h1>{{ docente.nombre }} {{ docente.apellido }}</h1>
       <p class="muted">{{ docente.correoInstitucional }}</p>
     </div>
@@ -57,12 +56,27 @@
         [class.tab-active]="tab === 'experiencia'"
         (click)="tab = 'experiencia'"
       >
-        <app-icon name="briefcase"></app-icon>Experiencia <span>{{ experiencias.length }}</span>
+        <app-icon name="briefcase"></app-icon>Experiencia <span>{{ experiencias.length }}</span></button
+      ><button
+        type="button"
+        role="tab"
+        [attr.aria-selected]="tab === 'disponibilidad'"
+        [class.tab-active]="tab === 'disponibilidad'"
+        (click)="tab = 'disponibilidad'"
+      >
+        <app-icon name="clock"></app-icon>Disponibilidad
+        <span>{{ disponibilidades.length }}</span>
       </button>
     </div>
     <button type="button" class="button button-primary" (click)="open()">
       <app-icon name="plus"></app-icon
-      >{{ tab === 'formacion' ? 'Agregar formación' : 'Agregar experiencia' }}
+      >{{
+        tab === 'formacion'
+          ? 'Agregar formación'
+          : tab === 'experiencia'
+            ? 'Agregar experiencia'
+            : 'Agregar franja'
+      }}
     </button>
   </div>
   <section class="panel" *ngIf="tab === 'formacion'">
@@ -139,7 +153,7 @@
             </td>
             <td>{{ e.areaConocimiento }}</td>
             <td>
-              {{ e.fechaInicio | date: 'dd/MM/yyyy' : 'UTC' }} –
+              {{ e.fechaInicio | date: 'dd/MM/yyyy' : 'UTC' }} -
               {{ e.fechaFin ? (e.fechaFin | date: 'dd/MM/yyyy' : 'UTC') : 'Actualidad' }}
             </td>
             <td>
@@ -173,12 +187,61 @@
       </div></ng-template
     >
   </section>
+  <section class="panel" *ngIf="tab === 'disponibilidad'">
+    <div class="table-scroll" *ngIf="disponibilidades.length; else emptyDisponibilidad">
+      <table>
+        <thead>
+          <tr>
+            <th>Día</th>
+            <th>Hora</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let d of disponibilidades">
+            <td class="table-name">{{ nombreDia(d.diaSemana) }}</td>
+            <td class="nowrap">{{ d.horaInicio.slice(0, 5) }} - {{ d.horaFin.slice(0, 5) }}</td>
+            <td>
+              <div class="row-actions">
+                <button
+                  type="button"
+                  class="icon-button"
+                  aria-label="Editar franja"
+                  (click)="open(d)"
+                >
+                  <app-icon name="edit"></app-icon></button
+                ><button
+                  type="button"
+                  class="icon-button danger"
+                  aria-label="Eliminar franja"
+                  (click)="deleting = d; modalError = ''"
+                >
+                  <app-icon name="trash"></app-icon>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <ng-template #emptyDisponibilidad
+      ><div class="empty-state">
+        <app-icon name="clock"></app-icon>
+        <h2>Sin franjas registradas</h2>
+        <p>Mientras no agregues franjas, el docente se programa en todo el horario institucional.</p>
+      </div></ng-template
+    >
+  </section>
 </ng-container>
 <app-dialog
   *ngIf="formOpen"
   [title]="
     (editing ? 'Editar ' : 'Agregar ') +
-    (tab === 'formacion' ? 'formación académica' : 'experiencia')
+    (tab === 'formacion'
+      ? 'formación académica'
+      : tab === 'experiencia'
+        ? 'experiencia'
+        : 'franja disponible')
   "
   [wide]="true"
   [busy]="busy"
@@ -198,8 +261,11 @@
   [busy]="busy"
   (close)="deleting = null"
   ><p>
-    Esta acción puede afectar el cumplimiento de los requisitos académicos del docente. El sistema
-    comprobará sus asignaciones antes de permitirla.
+    {{
+      tab === 'disponibilidad'
+        ? 'El sistema comprobará que las sesiones programadas del docente sigan dentro de su disponibilidad.'
+        : 'Esta acción puede afectar el cumplimiento de los requisitos académicos del docente. El sistema comprobará sus asignaciones antes de permitirla.'
+    }}
   </p>
   <app-feedback [message]="modalError" kind="error"></app-feedback>
   <div class="dialog-actions">

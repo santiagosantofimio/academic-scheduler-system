@@ -56,6 +56,9 @@
   <p class="field-error" *ngIf="form.errors?.['dateOrder'] && form.touched">
     La fecha final debe ser igual o posterior a la inicial.
   </p>
+  <p class="field-error" *ngIf="form.errors?.['timeOrder'] && form.touched">
+    La hora final debe ser posterior a la inicial.
+  </p>
   <div class="dialog-actions">
     <button type="button" class="button button-secondary" [disabled]="busy" (click)="cancel.emit()">
       Cancelar

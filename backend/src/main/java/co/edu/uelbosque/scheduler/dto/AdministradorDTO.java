@@ -5,10 +5,6 @@ import java.util.Objects;
 import co.edu.uelbosque.scheduler.entity.*;
 import co.edu.uelbosque.scheduler.entity.Usuario;
 
-/**
- * Conserva la generalizacion a Usuario dibujada en el UML; no es una entidad
- * JPA.
- */
 public class AdministradorDTO extends Usuario {
 	private String cargo;
 
@@ -25,10 +21,6 @@ public class AdministradorDTO extends Usuario {
 		this.cargo = cargo;
 	}
 
-	/**
-	 * La exportacion omite nombres: se interpreta esta sobrecarga como nombre y
-	 * cargo.
-	 */
 	public AdministradorDTO(String nombre, String cargo) {
 		setNombre(nombre);
 		this.cargo = cargo;

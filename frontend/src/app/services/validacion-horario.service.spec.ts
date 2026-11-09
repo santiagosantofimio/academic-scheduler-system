@@ -37,8 +37,8 @@ describe('Revision y representacion del horario', () => {
         },
       ],
       grupos: [
-        { idGrupo: 1, numeroGrupo: '01', estado: 'ACTIVO', asignaturaId: 1, docenteId: 1 },
-        { idGrupo: 2, numeroGrupo: '02', estado: 'ACTIVO', asignaturaId: 1, docenteId: 1 },
+        { idGrupo: 1, numeroGrupo: '01', estado: 'ACTIVO', cupoEsperado: 30, asignaturaId: 1, docenteId: 1 },
+        { idGrupo: 2, numeroGrupo: '02', estado: 'ACTIVO', cupoEsperado: 30, asignaturaId: 2, docenteId: 2 },
       ],
       sesiones,
       configuracion: {
@@ -51,6 +51,9 @@ describe('Revision y representacion del horario', () => {
         duracionSesionMinutos: 60,
         maxSesionesSemanales: 4,
         evitarDiasConsecutivos: false,
+        cupoMinimoGrupo: 10,
+        cupoMaximoGrupo: 40,
+        toleranciaCupoPorcentaje: 10,
       },
     };
   }
@@ -106,11 +109,12 @@ describe('Revision y representacion del horario', () => {
     ).toEqual([]);
   });
   it('detecta cruces del mismo docente entre grupos diferentes', () => {
-    expect(
-      revisar
-        .revisar(data([a, { ...a, idSesion: 2, grupoId: 2 }]))
-        .some((o) => o.title === 'Cruce de docente'),
-    ).toBeTrue();
+    const base = data([a, { ...a, idSesion: 2, grupoId: 2 }]);
+    base.grupos[1].docenteId = 1;
+    expect(revisar.revisar(base).map((o) => o.title)).toEqual(['Cruce de docente']);
+  });
+  it('grupos con docentes distintos pueden compartir franja', () => {
+    expect(revisar.revisar(data([a, { ...a, idSesion: 2, grupoId: 2 }]))).toEqual([]);
   });
   it('las sesiones canceladas no generan cruces ni consumen carga', () => {
     expect(

@@ -1,6 +1,6 @@
 import { Campo } from '../../../shared/registro-form/registro-form.component';
 import { campoNumero, campoTexto, opciones } from '../catalogos/catalogo-definitions';
-import { EXPERIENCIAS, NIVELES, VINCULACIONES } from '../../../interfaces/api.models';
+import { DIAS, EXPERIENCIAS, NIVELES, VINCULACIONES } from '../../../interfaces/api.models';
 export function camposDocente(editando: boolean): Campo[] {
   return [
     campoTexto('nombre', 'Nombre'),
@@ -49,6 +49,18 @@ export const CAMPOS_FORMACION: Campo[] = [
   },
   campoTexto('institucion', 'Institución'),
   campoTexto('areaConocimiento', 'Área de conocimiento'),
+];
+export const CAMPOS_DISPONIBILIDAD: Campo[] = [
+  {
+    key: 'diaSemana',
+    label: 'Día de la semana',
+    type: 'select',
+    required: true,
+    full: true,
+    options: DIAS.map((d) => ({ value: d.valor, label: d.nombre })),
+  },
+  { key: 'horaInicio', label: 'Hora inicial', type: 'time', required: true },
+  { key: 'horaFin', label: 'Hora final', type: 'time', required: true },
 ];
 export const CAMPOS_EXPERIENCIA: Campo[] = [
   {

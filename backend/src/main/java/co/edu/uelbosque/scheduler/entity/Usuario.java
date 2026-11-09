@@ -49,10 +49,6 @@ public abstract class Usuario {
 		this.estado = estado;
 	}
 
-	/**
-	 * Firma conservada del UML. El int legado no se persiste porque no tiene
-	 * atributo asociado.
-	 */
 	public Usuario(long id, int parametroSinDefinir, String nombre, String apellido, String numeroDocumento,
 			String correoInstitucional, String contrasenia, boolean estado) {
 		this(id, nombre, apellido, numeroDocumento, correoInstitucional, contrasenia, estado);

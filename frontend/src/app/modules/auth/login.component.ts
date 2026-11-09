@@ -27,7 +27,7 @@ export class LoginComponent implements OnInit {
     this.expired = this.route.snapshot.queryParamMap.get('motivo') === 'sesion';
     if (this.auth.usuario)
       void this.router.navigateByUrl(
-        this.auth.usuario.rol === 'ADMINISTRADOR' ? '/inicio' : '/cuenta',
+        this.auth.usuario.rol === 'ADMINISTRADOR' ? '/inicio' : '/mi-horario',
       );
   }
   ingresar(): void {
@@ -45,7 +45,7 @@ export class LoginComponent implements OnInit {
           const continuation = this.route.snapshot.queryParamMap.get('continuar');
           const target =
             usuario.rol === 'DOCENTE'
-              ? '/cuenta'
+              ? '/mi-horario'
               : continuation?.startsWith('/') &&
                   !continuation.startsWith('//') &&
                   !continuation.startsWith('/ingresar')

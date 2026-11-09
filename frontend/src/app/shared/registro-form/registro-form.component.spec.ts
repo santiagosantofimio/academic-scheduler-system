@@ -25,6 +25,19 @@ describe('Formularios de registro', () => {
     expect(component.form.get('nivelFormacionMinimo')?.valid).toBeTrue();
     component.ngOnDestroy();
   });
+  it('exige que la hora final sea posterior a la inicial', () => {
+    const component = new RegistroFormComponent(new FormBuilder());
+    component.fields = [
+      { key: 'horaInicio', label: 'Inicio', type: 'time', required: true },
+      { key: 'horaFin', label: 'Fin', type: 'time', required: true },
+    ];
+    component.ngOnChanges({ fields: new SimpleChange(null, component.fields, true) });
+    component.form.patchValue({ horaInicio: '10:00', horaFin: '08:00' });
+    expect(component.form.errors?.['timeOrder']).toBeTrue();
+    component.form.patchValue({ horaFin: '12:00' });
+    expect(component.form.valid).toBeTrue();
+    component.ngOnDestroy();
+  });
   it('rechaza textos en blanco y contrasenas que superan 72 bytes UTF-8', () => {
     const component = new RegistroFormComponent(new FormBuilder());
     component.fields = [

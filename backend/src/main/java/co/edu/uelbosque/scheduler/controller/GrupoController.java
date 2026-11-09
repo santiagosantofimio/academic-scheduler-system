@@ -98,7 +98,6 @@ public class GrupoController {
 		return ResponseEntity.status(201).body("Grupo registrado");
 	}
 
-	/** Sobrecarga escalar del UML; la API HTTP utiliza el DTO documentado. */
 	public ResponseEntity<String> crearGrupo(Long asignaturaId, String numeroGrupo, EstadoGrupo estado) {
 		GrupoDTO data = new GrupoDTO(numeroGrupo, estado);
 		data.setAsignaturaId(asignaturaId);

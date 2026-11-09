@@ -5,7 +5,14 @@ import { finalize } from 'rxjs';
 import { AcademicoService } from '../../../services/academico.service';
 import { mensajeError } from '../../../services/api-error';
 import { ObservacionHorario, ValidacionHorarioService } from '../../../services/validacion-horario.service';
-import { DatosPlaneacion, DIAS, DiaSemana, SesionHorarioDTO } from '../../../interfaces/api.models';
+import {
+  DatosPlaneacion,
+  DIAS,
+  DiaSemana,
+  FormatoExportacion,
+  SesionHorarioDTO,
+} from '../../../interfaces/api.models';
+import { guardarArchivo } from '../../../shared/descarga';
 import { MovimientoSesion } from '../../../shared/semana/semana.component';
 @Component({
   selector: 'app-horarios',
@@ -160,6 +167,18 @@ export class HorariosComponent implements OnInit {
       },
       error: (error) => (this.modalError = mensajeError(error)),
     });
+  }
+  exportar(formato: FormatoExportacion): void {
+    this.error = '';
+    this.api
+      .exportar(formato, {
+        grupo: Number(this.groupFilter),
+        docente: Number(this.teacherFilter),
+      })
+      .subscribe({
+        next: (archivo) => guardarArchivo(archivo, `horario.${formato}`),
+        error: (error) => (this.error = mensajeError(error)),
+      });
   }
   generate(): void {
     if (!this.generationGroup || this.busy || !this.data?.configuracion) return;

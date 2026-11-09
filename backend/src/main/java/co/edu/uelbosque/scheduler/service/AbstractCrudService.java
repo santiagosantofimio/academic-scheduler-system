@@ -7,9 +7,6 @@ import org.springframework.transaction.annotation.Transactional;
 import co.edu.uelbosque.scheduler.exception.*;
 import co.edu.uelbosque.scheduler.util.LanzadorDeExcepcion;
 
-/**
- * Infraestructura comun del contrato CRUD, sin reglas particulares del dominio.
- */
 @Transactional(readOnly = true)
 public abstract class AbstractCrudService<E, D> implements CRUDOperation<D> {
 	protected final JpaRepository<E, Long> repository;

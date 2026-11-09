@@ -1,6 +1,5 @@
 <header class="page-heading">
   <div>
-    <p class="eyebrow">ADMINISTRACIÓN</p>
     <h1>Configuración de horarios</h1>
     <p class="muted">Define las franjas institucionales y las condiciones de programación.</p>
   </div>
@@ -112,6 +111,50 @@
             >Evitar sesiones del mismo grupo en días consecutivos</span
           ></label
         >
+      </div>
+    </section>
+    <section class="configuration-section">
+      <div>
+        <h2>Cupo de los grupos</h2>
+        <p class="muted">El máximo admite la tolerancia indicada, por ejemplo 40 con 10 % son 44.</p>
+      </div>
+      <div>
+        <div class="form-grid">
+          <div class="field">
+            <label for="cupo-minimo">Cupo mínimo</label
+            ><input
+              id="cupo-minimo"
+              type="number"
+              formControlName="cupoMinimoGrupo"
+              min="1"
+              step="1"
+              required
+            /><app-field-error [control]="form.controls.cupoMinimoGrupo"></app-field-error>
+          </div>
+          <div class="field">
+            <label for="cupo-maximo">Cupo máximo</label
+            ><input
+              id="cupo-maximo"
+              type="number"
+              formControlName="cupoMaximoGrupo"
+              min="1"
+              step="1"
+              required
+            /><app-field-error [control]="form.controls.cupoMaximoGrupo"></app-field-error>
+          </div>
+          <div class="field">
+            <label for="cupo-tolerancia">Tolerancia (%)</label
+            ><input
+              id="cupo-tolerancia"
+              type="number"
+              formControlName="toleranciaCupoPorcentaje"
+              min="0"
+              max="100"
+              step="1"
+              required
+            /><app-field-error [control]="form.controls.toleranciaCupoPorcentaje"></app-field-error>
+          </div>
+        </div>
       </div>
     </section>
     <footer class="configuration-footer">

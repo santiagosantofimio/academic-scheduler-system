@@ -19,10 +19,9 @@ export class ApiInterceptor implements HttpInterceptor {
   ) {}
   intercept(request: HttpRequest<unknown>, next: HttpHandler): Observable<HttpEvent<unknown>> {
     const base = environment.apiUrl.replace(/\/$/, '');
-    // No transmitir credenciales a imagenes, enlaces externos ni otros origenes.
     if (!request.url.startsWith(`${base}/`) && request.url !== base) return next.handle(request);
     const auth = this.injector.get(AuthService);
-    let headers = request.headers;
+    let headers = request.headers.set('X-Requested-With', 'XMLHttpRequest');
     if (auth.authorizationHeader && !headers.has('Authorization'))
       headers = headers.set('Authorization', auth.authorizationHeader);
     const escritura = !['GET', 'HEAD', 'OPTIONS'].includes(request.method);

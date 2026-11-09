@@ -5,6 +5,7 @@ import { AdminGuard } from '../../guards/admin.guard';
 import { SharedModule } from '../../shared/shared.module';
 import { LayoutComponent } from './layout.component';
 import { CuentaComponent } from './cuenta.component';
+import { MiHorarioComponent } from './mi-horario.component';
 
 const routes: Routes = [
   {
@@ -13,6 +14,7 @@ const routes: Routes = [
     canActivate: [AuthGuard],
     children: [
       { path: 'cuenta', component: CuentaComponent },
+      { path: 'mi-horario', component: MiHorarioComponent },
       {
         path: '',
         canActivate: [AdminGuard],
@@ -22,7 +24,7 @@ const routes: Routes = [
   },
 ];
 @NgModule({
-  declarations: [LayoutComponent, CuentaComponent],
+  declarations: [LayoutComponent, CuentaComponent, MiHorarioComponent],
   imports: [SharedModule, RouterModule.forChild(routes)],
 })
 export class LayoutModule {}

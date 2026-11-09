@@ -11,7 +11,6 @@ import {
   standalone: false,
   template: ` <header class="page-heading">
       <div>
-        <p class="eyebrow">PLANEACIÓN ACADÉMICA</p>
         <h1>Validaciones del horario</h1>
         <p class="muted">Revisión de las sesiones consultadas y las condiciones institucionales.</p>
       </div>

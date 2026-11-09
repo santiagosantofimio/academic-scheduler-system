@@ -132,8 +132,6 @@ public class RequisitoAsignaturaService extends AbstractCrudService<RequisitoAsi
 			List<ExperienciaDocente> registros = experiencias.findByDocenteIdAndTipoExperiencia(docenteId, tipo)
 					.orElseGet(List::of).stream()
 					.filter(e -> mismaArea(e.getAreaConocimiento(), requisito.getAreaConocimiento())).toList();
-			// Convencion documentada: un anio acumulado equivale a 365 dias, sin duplicar
-			// periodos simultaneos.
 			cumple = !registros.isEmpty()
 					&& diasExperiencia(registros, LocalDate.now(clock)) >= requisito.getAniosExperienciaMinima() * 365L;
 		}

@@ -52,6 +52,10 @@ public class ConfiguracionHorariosService extends AbstractCrudService<Configurac
 		if (data.getDuracionSesionMinutos() <= 0)
 			throw new HorarioInvalidoException("La duracion debe ser positiva");
 		verificarSesionesSemanales(data.getMaxSesionesSemanales());
+		if (data.getCupoMinimoGrupo() <= 0 || data.getCupoMaximoGrupo() < data.getCupoMinimoGrupo())
+			throw new DatosInvalidosException("El cupo minimo debe ser positivo y no superar el maximo");
+		if (data.getToleranciaCupoPorcentaje() < 0 || data.getToleranciaCupoPorcentaje() > 100)
+			throw new DatosInvalidosException("La tolerancia de cupo debe estar entre 0 y 100");
 		DtoMapper.copy(data, entity);
 		List<SesionHorario> activas = sesiones.findByEstado(EstadoSesion.PROGRAMADA).orElseGet(List::of);
 		Map<Long, List<SesionHorario>> porGrupo = new HashMap<>();
@@ -60,6 +64,8 @@ public class ConfiguracionHorariosService extends AbstractCrudService<Configurac
 					|| !Duration.between(sesion.getHoraInicio(), sesion.getHoraFin())
 							.equals(Duration.ofMinutes(entity.getDuracionSesionMinutos())))
 				throw new HorarioInvalidoException("La configuracion invalida sesiones existentes; cancelelas primero");
+			if (!ReglasHorario.cupoValido(entity, sesion.getGrupo().getCupoEsperado()))
+				throw new DatosInvalidosException("El rango de cupo invalida grupos con sesiones programadas");
 			porGrupo.computeIfAbsent(sesion.getGrupo().getIdGrupo(), k -> new ArrayList<>()).add(sesion);
 		}
 		for (List<SesionHorario> grupo : porGrupo.values()) {

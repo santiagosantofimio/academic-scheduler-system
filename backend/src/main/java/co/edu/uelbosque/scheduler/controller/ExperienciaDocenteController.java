@@ -105,7 +105,6 @@ public class ExperienciaDocenteController {
 		return ResponseEntity.status(201).body("ExperienciaDocente registrado");
 	}
 
-	/** Sobrecarga escalar del UML; la API HTTP utiliza el DTO documentado. */
 	public ResponseEntity<String> crearExperiencia(Long docenteId, TipoExperiencia tipoExperiencia, String institucion,
 			String cargo, String areaConocimiento, String descripcion, LocalDate fechaInicio, LocalDate fechaFin) {
 		ExperienciaDocenteDTO data = new ExperienciaDocenteDTO(tipoExperiencia, institucion, cargo, areaConocimiento,

@@ -11,7 +11,6 @@ import co.edu.uelbosque.scheduler.entity.*;
 import co.edu.uelbosque.scheduler.repository.*;
 import static org.junit.jupiter.api.Assertions.*;
 
-/** Construye metadatos y analiza JPQL sin URL JDBC, base de datos ni arranque de Spring Boot. */
 class ModeloJpaTest {
     @Test void herenciaRelacionesYConsultasSonValidasSinAccederAJdbc() {
         ConnectionProvider prohibido = new ConnectionProvider() {
@@ -29,15 +28,15 @@ class ModeloJpaTest {
         try {
             var origen = new MetadataSources(registro);
             List.of(Usuario.class,Administrador.class,Docente.class,FormacionAcademica.class,ExperienciaDocente.class,
-                    PlanEstudios.class,Asignatura.class,Grupo.class,RequisitoAsignatura.class,SesionHorario.class,ConfiguracionHorarios.class)
+                    PlanEstudios.class,Asignatura.class,Grupo.class,RequisitoAsignatura.class,SesionHorario.class,ConfiguracionHorarios.class,DisponibilidadDocente.class)
                     .forEach(origen::addAnnotatedClass);
             try (var fabrica = origen.buildMetadata().buildSessionFactory(); var em = fabrica.createEntityManager()) {
-                assertEquals(11, fabrica.getMetamodel().getEntities().size());
+                assertEquals(12, fabrica.getMetamodel().getEntities().size());
                 var repositorios = new JpaRepositoryFactory(em);
                 for (Class<?> tipo : List.of(UsuarioRepository.class,AdministradorRepository.class,DocenteRepository.class,
                         FormacionAcademicaRepository.class,ExperienciaDocenteRepository.class,PlanEstudiosRepository.class,
                         AsignaturaServiceRepository.class,GrupoRepository.class,RequisitoAsignaturaRepository.class,
-                        SesionHorarioRepository.class,ConfiguracionHorariosRepository.class))
+                        SesionHorarioRepository.class,ConfiguracionHorariosRepository.class,DisponibilidadDocenteRepository.class))
                     assertNotNull(repositorios.getRepository(tipo), tipo.getSimpleName());
             }
         } finally { StandardServiceRegistryBuilder.destroy(registro); }

@@ -8,8 +8,6 @@ import co.edu.uelbosque.scheduler.util.IdentidadJpa;
 
 @Entity
 public class ConfiguracionHorarios {
-	// Clave tecnica constante: la unicidad evita dos configuraciones en altas
-	// concurrentes.
 	@Column(nullable = false, unique = true, updatable = false, length = 20)
 	private String claveInstitucional = "INSTITUCIONAL";
 	@Id
@@ -24,6 +22,9 @@ public class ConfiguracionHorarios {
 	private int duracionSesionMinutos;
 	private int maxSesionesSemanales;
 	private boolean evitarDiasConsecutivos;
+	private int cupoMinimoGrupo = 10;
+	private int cupoMaximoGrupo = 40;
+	private int toleranciaCupoPorcentaje = 10;
 
 	public ConfiguracionHorarios() {
 
@@ -137,6 +138,30 @@ public class ConfiguracionHorarios {
 
 	public void setEvitarDiasConsecutivos(boolean evitarDiasConsecutivos) {
 		this.evitarDiasConsecutivos = evitarDiasConsecutivos;
+	}
+
+	public int getCupoMinimoGrupo() {
+		return cupoMinimoGrupo;
+	}
+
+	public void setCupoMinimoGrupo(int cupoMinimoGrupo) {
+		this.cupoMinimoGrupo = cupoMinimoGrupo;
+	}
+
+	public int getCupoMaximoGrupo() {
+		return cupoMaximoGrupo;
+	}
+
+	public void setCupoMaximoGrupo(int cupoMaximoGrupo) {
+		this.cupoMaximoGrupo = cupoMaximoGrupo;
+	}
+
+	public int getToleranciaCupoPorcentaje() {
+		return toleranciaCupoPorcentaje;
+	}
+
+	public void setToleranciaCupoPorcentaje(int toleranciaCupoPorcentaje) {
+		this.toleranciaCupoPorcentaje = toleranciaCupoPorcentaje;
 	}
 
 	@Override

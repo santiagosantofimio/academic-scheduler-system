@@ -50,7 +50,6 @@ export class CatalogoComponent implements OnInit, OnDestroy {
     this.routeSubscription?.unsubscribe();
   }
   private recurso(): RecursoApi<Record<string, unknown>> {
-    // El formulario compartido usa metadatos; esta es su unica frontera de conversion dinamica.
     return this.api[this.definition.key] as unknown as RecursoApi<Record<string, unknown>>;
   }
   load(): void {
@@ -97,7 +96,7 @@ export class CatalogoComponent implements OnInit, OnDestroy {
       return d ? `${d.nombre} ${d.apellido}` : id ? `Docente #${id}` : 'Sin asignar';
     }
     if (key === 'estado' || key === 'tipoRequisito') return etiqueta(id);
-    return id === null || id === undefined ? '—' : String(id);
+    return id === null || id === undefined ? '-' : String(id);
   }
   inactive(record: Record<string, unknown>): boolean {
     return record['estado'] === false || record['estado'] === 'INACTIVO';

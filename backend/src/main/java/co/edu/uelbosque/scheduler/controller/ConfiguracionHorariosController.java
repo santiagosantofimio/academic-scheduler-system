@@ -72,7 +72,6 @@ public class ConfiguracionHorariosController {
 		return ResponseEntity.ok(configuracionHorariosSer.exist(id));
 	}
 
-	/** Sobrecarga escalar del UML; la API HTTP utiliza el DTO documentado. */
 	public ResponseEntity<String> crearConfiguracion(LocalTime horaInicioSemana, LocalTime horaFinSemana,
 			LocalTime horaInicioSabado, LocalTime horaFinSabado, LocalTime horaInicioDescanso,
 			LocalTime horaFinDescanso, int duracionSesionMinutos, int maxSesionesSemanales,

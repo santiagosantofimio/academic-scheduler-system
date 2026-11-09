@@ -7,7 +7,7 @@
     (click)="mobileMenu = false"
   ></button>
   <aside class="sidebar" [class.sidebar-open]="mobileMenu" aria-label="Menú principal">
-    <a class="sidebar-brand" [routerLink]="usuario.rol === 'ADMINISTRADOR' ? '/inicio' : '/cuenta'"
+    <a class="sidebar-brand" [routerLink]="usuario.rol === 'ADMINISTRADOR' ? '/inicio' : '/mi-horario'"
       ><img class="brand-logo brand-logo--sidebar" src="images/logos/sis-gen.png" alt="SIS GEN" /><span class="brand-caption">Gestión de horarios académicos</span></a
     >
     <ng-container *ngIf="usuario.rol === 'ADMINISTRADOR'; else docenteMenu">
@@ -36,6 +36,9 @@
     <ng-template #docenteMenu
       ><p class="nav-label">MI CUENTA</p>
       <nav>
+        <a routerLink="/mi-horario" routerLinkActive="nav-active" ariaCurrentWhenActive="page" (click)="mobileMenu = false"
+          ><app-icon name="calendar"></app-icon><span>Mi horario</span></a
+        >
         <a routerLink="/cuenta" routerLinkActive="nav-active" ariaCurrentWhenActive="page" (click)="mobileMenu = false"
           ><app-icon name="users"></app-icon><span>Mi acceso</span></a
         >

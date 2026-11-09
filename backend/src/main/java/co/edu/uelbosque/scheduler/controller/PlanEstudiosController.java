@@ -96,7 +96,6 @@ public class PlanEstudiosController {
 		return ResponseEntity.ok(planEstudiosSer.findByEstado(valor));
 	}
 
-	/** Sobrecarga escalar del UML; la API HTTP utiliza el DTO documentado. */
 	public ResponseEntity<String> crearPlan(String nombrePrograma, String codigoPrograma, String versionPlan,
 			int numerosSemestres, boolean estado) {
 		PlanEstudiosDTO data = new PlanEstudiosDTO(nombrePrograma, codigoPrograma, versionPlan, numerosSemestres,

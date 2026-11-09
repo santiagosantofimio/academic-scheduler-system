@@ -14,7 +14,7 @@ describe('Autenticacion con el contrato HTTP Basic existente', () => {
     http = TestBed.inject(HttpTestingController);
   });
   afterEach(() => http.verify());
-  it('autentica antes de consultar permisos y conserva el rol administrativo real', () => {
+  it('autentica antes de consultar la identidad y conserva el rol real', () => {
     let role = '';
     auth.ingresar(' ADMIN@EXAMPLE.TEST ', 'clave de prueba').subscribe((user) => (role = user.rol));
     const csrf = http.expectOne('/api/csrf');
@@ -24,27 +24,33 @@ describe('Autenticacion con el contrato HTTP Basic existente', () => {
     expect(csrf.request.withCredentials).toBeTrue();
     expect(auth.usuario).toBeNull();
     csrf.flush(token);
-    const probe = http.expectOne(
-      '/api/administradores/por-correo-institucional?valor=admin@example.test',
-    );
-    probe.flush([
-      { id: 1, nombre: 'Cuenta', apellido: 'Prueba', correoInstitucional: 'admin@example.test' },
-    ]);
+    http.expectOne('/api/usuarios/actual').flush({
+      id: 1,
+      nombre: 'Cuenta',
+      apellido: 'Prueba',
+      correoInstitucional: 'admin@example.test',
+      rol: 'ADMINISTRADOR',
+    });
     expect(role).toBe('ADMINISTRADOR');
+    expect(auth.usuario?.nombre).toBe('Cuenta Prueba');
     expect(auth.csrfToken?.token).toBe(token.token);
     auth.cerrar();
     expect(auth.usuario).toBeNull();
     expect(auth.authorizationHeader).toBeNull();
     expect(auth.csrfToken).toBeNull();
   });
-  it('solo concede el acceso docente limitado despues de CSRF valido y consulta administrativa 403', () => {
-    let role = '';
-    auth.ingresar('docente@example.test', 'clave').subscribe((user) => (role = user.rol));
+  it('toma el rol docente de la identidad informada por el servidor', () => {
+    auth.ingresar('docente@example.test', 'clave').subscribe();
     http.expectOne('/api/csrf').flush(token);
-    http
-      .expectOne('/api/administradores/por-correo-institucional?valor=docente@example.test')
-      .flush({ status: 403 }, { status: 403, statusText: 'Forbidden' });
-    expect(role).toBe('DOCENTE');
+    http.expectOne('/api/usuarios/actual').flush({
+      id: 2,
+      nombre: 'Luis',
+      apellido: 'Prueba',
+      correoInstitucional: 'docente@example.test',
+      rol: 'DOCENTE',
+    });
+    expect(auth.usuario?.rol).toBe('DOCENTE');
+    expect(auth.usuario?.id).toBe(2);
   });
   it('no autentica con credenciales rechazadas', () => {
     let rejected = false;
@@ -54,13 +60,11 @@ describe('Autenticacion con el contrato HTTP Basic existente', () => {
     expect(auth.usuario).toBeNull();
     expect(auth.authorizationHeader).toBeNull();
   });
-  it('un fallo del servidor al consultar permisos no se interpreta como rol docente', () => {
+  it('un fallo al consultar la identidad no abre la sesion', () => {
     let rejected = false;
     auth.ingresar('admin@example.test', 'clave').subscribe({ error: () => (rejected = true) });
     http.expectOne('/api/csrf').flush(token);
-    http
-      .expectOne('/api/administradores/por-correo-institucional?valor=admin@example.test')
-      .flush({}, { status: 500, statusText: 'Error' });
+    http.expectOne('/api/usuarios/actual').flush({}, { status: 500, statusText: 'Error' });
     expect(rejected).toBeTrue();
     expect(auth.usuario).toBeNull();
   });

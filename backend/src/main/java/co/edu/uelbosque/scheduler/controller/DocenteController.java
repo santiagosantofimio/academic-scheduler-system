@@ -108,7 +108,6 @@ public class DocenteController {
 		return ResponseEntity.ok(docenteSer.findByEscalafon(valor));
 	}
 
-	/** Sobrecarga escalar del UML; la API HTTP utiliza el DTO documentado. */
 	public ResponseEntity<String> crearDocente(String nombre, String apellido, String numeroDocumento,
 			String correoInstitucional, String contrasenia, boolean estado, TipoVinculacion tipoVinculacion,
 			String escalafon, String especialidad, int horasMaximasDocenciaSemanal) {

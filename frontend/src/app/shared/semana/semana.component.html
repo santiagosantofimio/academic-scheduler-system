@@ -64,14 +64,14 @@
           item.docente +
           '\n' +
           item.sesion.horaInicio.slice(0, 5) +
-          '–' +
+          ' - ' +
           item.sesion.horaFin.slice(0, 5)
         "
       >
         <strong>{{ item.title }}</strong
         ><span>{{ item.subtitle }}</span
         ><small
-          >{{ item.sesion.horaInicio.slice(0, 5) }}–{{ item.sesion.horaFin.slice(0, 5) }}</small
+          >{{ item.sesion.horaInicio.slice(0, 5) }} - {{ item.sesion.horaFin.slice(0, 5) }}</small
         >
       </button>
     </div>
@@ -82,7 +82,7 @@
     <app-icon name="calendar"></app-icon>
     <h2>El horario comienza con tus datos</h2>
     <p>Configura las franjas institucionales y registra los grupos para organizar la semana.</p>
-    <a routerLink="/configuracion" class="button button-secondary"
+    <a *ngIf="editable" routerLink="/configuracion" class="button button-secondary"
       >Configurar horarios<app-icon name="arrow"></app-icon
     ></a></div
 ></ng-template>

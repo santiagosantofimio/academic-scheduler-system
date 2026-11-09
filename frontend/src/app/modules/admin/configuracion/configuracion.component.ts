@@ -70,6 +70,12 @@ export class ConfiguracionComponent implements OnInit {
           [Validators.required, Validators.min(1), entero],
         ],
         evitarDiasConsecutivos: [false],
+        cupoMinimoGrupo: [10, [Validators.required, Validators.min(1), entero]],
+        cupoMaximoGrupo: [40, [Validators.required, Validators.min(1), entero]],
+        toleranciaCupoPorcentaje: [
+          10,
+          [Validators.required, Validators.min(0), Validators.max(100), entero],
+        ],
       },
       { validators: ordenHoras },
     );

@@ -1,9 +1,17 @@
 # Documentación de ingeniería
 
-Carpeta destino del informe de ingeniería, ADRs, y estado del arte exigidos por el enunciado del curso (Proyecto Núcleo 1).
+## Diagramas
 
-Pendiente de completar en fases posteriores:
+| Archivo | Contenido |
+|---|---|
+| [diagrams/diagrama-contexto.md](diagrams/diagrama-contexto.md) | Actores, fuentes de información externas y alcance del PMV. |
+| [diagrams/diagrama-clases-uml.pdf](diagrams/diagrama-clases-uml.pdf) | Diagrama de clases UML aprobado. |
+
+El UML es la base del modelo. La implementación lo extiende con el cupo esperado de cada grupo, los límites de cupo de la configuración y la disponibilidad del docente, que pide el alcance del PMV.
+
+## Pendiente
+
+- Wireframe, mockup y prototipo aprobados.
 - Levantamiento y especificación de requisitos.
 - Estado del arte (timetable problem).
-- Diseño de datos y arquitectura (ADRs).
-- Diseño de interfaz (drag-and-drop).
+- Decisiones de arquitectura (ADRs).

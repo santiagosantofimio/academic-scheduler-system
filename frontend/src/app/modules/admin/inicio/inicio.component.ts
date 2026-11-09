@@ -3,7 +3,7 @@ import { Router } from '@angular/router';
 import { finalize } from 'rxjs';
 import { AcademicoService } from '../../../services/academico.service';
 import { mensajeError } from '../../../services/api-error';
-import { DatosPlaneacion, SesionHorarioDTO } from '../../../interfaces/api.models';
+import { DatosPlaneacion, GrupoDTO, SesionHorarioDTO } from '../../../interfaces/api.models';
 import {
   ObservacionHorario,
   ValidacionHorarioService,
@@ -72,6 +72,10 @@ export class InicioComponent implements OnInit {
   }
   get progress(): number {
     return this.gruposActivos ? Math.round((this.completos / this.gruposActivos) * 100) : 0;
+  }
+  nombreGrupo(g: GrupoDTO): string {
+    const asignatura = this.data?.asignaturas.find((a) => a.idAsginatura === g.asignaturaId);
+    return `${asignatura?.nombre || 'Asignatura'} · Grupo ${g.numeroGrupo}`;
   }
   abrirSesion(session: SesionHorarioDTO): void {
     void this.router.navigate(['/horarios'], { queryParams: { sesion: session.idSesion } });
