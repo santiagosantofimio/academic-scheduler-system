@@ -1,7 +1,10 @@
 <header class="page-heading">
   <div>
     <h1>Mi horario</h1>
-    <p class="muted">Sesiones programadas de tus grupos.</p>
+    <p class="muted" *ngIf="version; else sinVersion">
+      Horario publicado <strong>{{ version }}</strong>, el {{ fechaPublicacion }}
+    </p>
+    <ng-template #sinVersion><p class="muted">Sesiones publicadas de tus grupos.</p></ng-template>
   </div>
   <div class="heading-actions">
     <button
@@ -68,8 +71,8 @@
     <ng-template #empty
       ><div class="empty-state">
         <app-icon name="calendar"></app-icon>
-        <h2>No tienes sesiones programadas</h2>
-        <p>Cuando coordinación programe tus grupos, aparecerán aquí.</p>
+        <h2>{{ version ? 'No tienes sesiones en el horario publicado' : 'Aún no hay un horario publicado' }}</h2>
+        <p>Cuando coordinación publique el horario, tus clases aparecerán aquí.</p>
       </div></ng-template
     ></ng-template
   >

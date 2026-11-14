@@ -1,0 +1,245 @@
+<header class="page-heading">
+  <div>
+    <h1>Versiones y publicación</h1>
+    <p class="muted">Guarda borradores del horario, compáralos y publica el que vean los docentes.</p>
+  </div>
+  <button type="button" class="button button-secondary" [disabled]="loading || busy" (click)="load()">
+    <app-icon name="refresh"></app-icon>Actualizar
+  </button>
+</header>
+<app-feedback [message]="error" kind="error" [retry]="!busy" (retryClick)="load()"></app-feedback
+><app-feedback [message]="success" kind="success"></app-feedback>
+<div *ngIf="loading" class="loading-state" role="status">
+  <span class="spinner"></span>Cargando versiones…
+</div>
+<ng-container *ngIf="!loading">
+  <section class="panel">
+    <div class="panel-heading">
+      <div>
+        <h2>Horario de trabajo</h2>
+        <p class="muted" *ngIf="vigente; else sinPublicar">
+          Versión publicada: <strong>{{ vigente.nombre }}</strong>, el {{ fecha(vigente.publicadaEn) }} por
+          {{ vigente.publicadaPor }}.
+        </p>
+        <ng-template #sinPublicar><p class="muted">Todavía no hay un horario publicado.</p></ng-template>
+      </div>
+    </div>
+    <div class="validation-summary" [class.validation-warning]="conflictos.length">
+      <app-icon [name]="conflictos.length ? 'alert' : 'shield'"></app-icon>
+      <div>
+        <h3>
+          {{
+            conflictos.length
+              ? conflictos.length + ' conflictos con reglas obligatorias'
+              : 'Sin conflictos con las reglas obligatorias'
+          }}
+        </h3>
+        <p>
+          {{
+            conflictos.length
+              ? 'El servidor revisó todas las sesiones programadas. Resuélvelos en Horarios antes de publicar.'
+              : 'El servidor revisó todas las sesiones programadas. El horario se puede publicar.'
+          }}
+        </p>
+      </div>
+    </div>
+    <div class="observation-list" *ngIf="conflictos.length">
+      <article *ngFor="let c of conflictos">
+        <span class="observation-icon"><app-icon name="alert"></app-icon></span>
+        <div>
+          <h3>{{ c.descripcion }}</h3>
+          <p>{{ c.regla }}</p>
+        </div>
+        <a routerLink="/horarios" [queryParams]="{ sesion: c.sesionId }" class="text-button"
+          >Revisar sesión<app-icon name="arrow"></app-icon
+        ></a>
+      </article>
+    </div>
+    <form class="form-grid" (ngSubmit)="guardarBorrador()">
+      <div class="field">
+        <label for="nombre-version">Nombre de la versión</label
+        ><input
+          id="nombre-version"
+          name="nombre"
+          [(ngModel)]="nombre"
+          maxlength="120"
+          placeholder="Ejemplo: 2027-1 propuesta A"
+          [disabled]="busy"
+        />
+      </div>
+      <div class="heading-actions">
+        <button type="submit" class="button button-secondary" [disabled]="busy || !nombreValido">
+          <app-icon name="save"></app-icon>Guardar borrador
+        </button>
+        <button
+          type="button"
+          class="button button-primary"
+          [disabled]="busy || !nombreValido || conflictos.length > 0"
+          (click)="modalError = ''; publicando = true"
+        >
+          <app-icon name="send"></app-icon>Publicar
+        </button>
+      </div>
+    </form>
+  </section>
+
+  <section class="panel">
+    <div class="panel-heading">
+      <div>
+        <h2>Comparar versiones</h2>
+        <p class="muted">
+          Carga en horas por semana. Diferencia de carga: distancia entre el docente con más y el
+          de menos horas. Horas muertas: tiempo libre entre clases del mismo docente en un día, sin
+          contar el descanso. Se resalta el menor valor.
+        </p>
+      </div>
+    </div>
+    <div class="table-scroll" *ngIf="versiones.length; else vacio">
+      <table>
+        <thead>
+          <tr>
+            <th>Versión</th>
+            <th>Estado</th>
+            <th>Sesiones</th>
+            <th>Docentes</th>
+            <th>Carga máxima</th>
+            <th>Diferencia de carga</th>
+            <th>Horas muertas</th>
+            <th>Días con clase por docente</th>
+            <th>Creada</th>
+            <th class="actions-column">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let v of versiones">
+            <td class="table-name">
+              {{ v.nombre }}
+              <span class="table-secondary" *ngIf="v.origenNombre">Recuperada de {{ v.origenNombre }}</span>
+            </td>
+            <td>
+              <span
+                class="badge"
+                [class.badge-muted]="v.estado === 'HISTORICA'"
+                [class.badge-warning]="v.estado === 'BORRADOR'"
+                >{{ estados[v.estado] }}</span
+              >
+            </td>
+            <td>{{ v.indicadores.sesiones }}</td>
+            <td>{{ v.indicadores.docentes }}</td>
+            <td [class.mejor-valor]="mejor('cargaMaxima', v)">{{ v.indicadores.cargaMaxima }} h</td>
+            <td [class.mejor-valor]="mejor('diferenciaCarga', v)">{{ v.indicadores.diferenciaCarga }} h</td>
+            <td [class.mejor-valor]="mejor('horasMuertas', v)">{{ v.indicadores.horasMuertas }} h</td>
+            <td [class.mejor-valor]="mejor('diasConClasePromedio', v)">{{ v.indicadores.diasConClasePromedio }}</td>
+            <td class="nowrap">
+              {{ fecha(v.creadaEn) }}<span class="table-secondary">{{ v.creadaPor }}</span>
+            </td>
+            <td class="row-actions">
+              <button
+                type="button"
+                class="text-button"
+                [disabled]="busy"
+                (click)="modalError = ''; cargando = v"
+              >
+                {{ v.estado === 'BORRADOR' ? 'Cargar' : 'Recuperar' }}
+              </button>
+              <button
+                *ngIf="v.estado === 'BORRADOR'"
+                type="button"
+                class="icon-button"
+                aria-label="Eliminar borrador"
+                [disabled]="busy"
+                (click)="modalError = ''; eliminando = v"
+              >
+                <app-icon name="trash"></app-icon>
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <ng-template #vacio
+      ><div class="empty-state">
+        <app-icon name="history"></app-icon>
+        <h2>Aún no hay versiones</h2>
+        <p>Guarda el horario de trabajo como borrador para compararlo después.</p>
+      </div></ng-template
+    >
+  </section>
+
+  <section class="panel">
+    <div class="panel-heading">
+      <div>
+        <h2>Historial de cambios</h2>
+        <p class="muted">Últimos 200 cambios del horario, con la cuenta que los hizo.</p>
+      </div>
+    </div>
+    <div class="table-scroll" *ngIf="cambios.length; else sinCambios">
+      <table>
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Cuenta</th>
+            <th>Acción</th>
+            <th>Detalle</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let c of cambios">
+            <td class="nowrap">{{ fecha(c.fecha) }}</td>
+            <td>{{ c.usuario }}</td>
+            <td>{{ accion(c.accion) }}</td>
+            <td>{{ c.detalle }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <ng-template #sinCambios><p class="muted">Todavía no se registran cambios.</p></ng-template>
+  </section>
+</ng-container>
+
+<app-dialog *ngIf="publicando" title="Publicar horario" [busy]="busy" (close)="publicando = false"
+  ><p>
+    Se publicará el horario de trabajo como <strong>{{ nombre.trim() }}</strong>. La versión publicada
+    anterior pasará a histórica y los docentes verán esta en Mi horario.
+  </p>
+  <app-feedback [message]="modalError" kind="error"></app-feedback>
+  <div class="dialog-actions">
+    <button type="button" class="button button-secondary" [disabled]="busy" (click)="publicando = false">
+      Cancelar
+    </button>
+    <button type="button" class="button button-primary" [disabled]="busy" (click)="publicar()">
+      <app-icon name="send"></app-icon>Publicar
+    </button>
+  </div></app-dialog
+>
+<app-dialog *ngIf="cargando" title="Cargar versión" [busy]="busy" (close)="cargando = null"
+  ><p>
+    El horario de trabajo se reemplazará por <strong>{{ cargando.nombre }}</strong>. Las demás
+    versiones no cambian.
+    <ng-container *ngIf="cargando.estado !== 'BORRADOR'"
+      >Como no es un borrador, también se guardará una copia como borrador nuevo.</ng-container
+    >
+    Si el horario actual tiene cambios que quieras conservar, guárdalo antes como borrador.
+  </p>
+  <app-feedback [message]="modalError" kind="error"></app-feedback>
+  <div class="dialog-actions">
+    <button type="button" class="button button-secondary" [disabled]="busy" (click)="cargando = null">
+      Cancelar
+    </button>
+    <button type="button" class="button button-primary" [disabled]="busy" (click)="cargar()">
+      Cargar versión
+    </button>
+  </div></app-dialog
+>
+<app-dialog *ngIf="eliminando" title="Eliminar borrador" [busy]="busy" (close)="eliminando = null"
+  ><p>¿Quieres eliminar el borrador <strong>{{ eliminando.nombre }}</strong>? No se puede deshacer.</p>
+  <app-feedback [message]="modalError" kind="error"></app-feedback>
+  <div class="dialog-actions">
+    <button type="button" class="button button-secondary" [disabled]="busy" (click)="eliminando = null">
+      Cancelar
+    </button>
+    <button type="button" class="button button-danger" [disabled]="busy" (click)="eliminar()">
+      Eliminar
+    </button>
+  </div></app-dialog
+>

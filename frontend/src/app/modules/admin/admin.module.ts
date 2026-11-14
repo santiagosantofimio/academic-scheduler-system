@@ -8,6 +8,8 @@ import { CatalogoComponent } from './catalogos/catalogo.component';
 import { ConfiguracionComponent } from './configuracion/configuracion.component';
 import { HorariosComponent } from './horarios/horarios.component';
 import { ValidacionesComponent } from './validaciones/validaciones.component';
+import { VersionesComponent } from './versiones/versiones.component';
+import { NovedadesComponent } from './novedades/novedades.component';
 const routes: Routes = [
   { path: '', pathMatch: 'full', redirectTo: 'inicio' },
   { path: 'inicio', component: InicioComponent },
@@ -21,6 +23,8 @@ const routes: Routes = [
   { path: 'configuracion', component: ConfiguracionComponent },
   { path: 'horarios', component: HorariosComponent },
   { path: 'validaciones', component: ValidacionesComponent },
+  { path: 'versiones', component: VersionesComponent },
+  { path: 'novedades', component: NovedadesComponent },
 ];
 @NgModule({
   declarations: [
@@ -31,6 +35,8 @@ const routes: Routes = [
     ConfiguracionComponent,
     HorariosComponent,
     ValidacionesComponent,
+    VersionesComponent,
+    NovedadesComponent,
   ],
   imports: [SharedModule, RouterModule.forChild(routes)],
 })

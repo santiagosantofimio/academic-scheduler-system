@@ -17,6 +17,7 @@ export class IconComponent {
     clock: 'fa-clock', eye: 'fa-eye', mail: 'fa-envelope', lock: 'fa-lock',
     refresh: 'fa-arrows-rotate', info: 'fa-circle-info', graduation: 'fa-graduation-cap',
     briefcase: 'fa-briefcase', chevron: 'fa-chevron-right',
-    download: 'fa-download',
+    download: 'fa-download', history: 'fa-clock-rotate-left', send: 'fa-paper-plane',
+    save: 'fa-floppy-disk', bell: 'fa-bell', compare: 'fa-scale-balanced',
   };
 }

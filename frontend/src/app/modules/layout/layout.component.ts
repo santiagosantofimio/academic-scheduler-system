@@ -12,6 +12,8 @@ export class LayoutComponent {
     { path: '/grupos', label: 'Grupos', icon: 'users' },
     { path: '/horarios', label: 'Horarios', icon: 'calendar' },
     { path: '/validaciones', label: 'Validaciones', icon: 'shield' },
+    { path: '/versiones', label: 'Versiones y publicación', icon: 'history' },
+    { path: '/novedades', label: 'Novedades', icon: 'bell' },
   ];
   readonly administration = [
     { path: '/requisitos', label: 'Requisitos académicos', icon: 'graduation' },

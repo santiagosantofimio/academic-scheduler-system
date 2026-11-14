@@ -152,6 +152,75 @@ export interface HorarioDocenteDTO {
   asignaturas: AsignaturaDTO[];
   grupos: GrupoDTO[];
   sesiones: SesionHorarioDTO[];
+  versionPublicada?: string | null;
+  publicadaEn?: string | null;
+}
+export type EstadoVersion = 'BORRADOR' | 'PUBLICADA' | 'HISTORICA';
+export interface IndicadoresDTO {
+  sesiones: number;
+  grupos: number;
+  docentes: number;
+  cargaMaxima: number;
+  cargaMinima: number;
+  diferenciaCarga: number;
+  horasMuertas: number;
+  diasConClasePromedio: number;
+}
+export interface VersionResumenDTO {
+  idVersion: number;
+  nombre: string;
+  estado: EstadoVersion;
+  creadaEn: string;
+  creadaPor: string;
+  publicadaEn: string | null;
+  publicadaPor: string | null;
+  origenId: number | null;
+  origenNombre: string | null;
+  indicadores: IndicadoresDTO;
+}
+export interface ConflictoDTO {
+  sesionId: number;
+  grupoId: number;
+  descripcion: string;
+  regla: string;
+}
+export interface ResultadoCargaDTO {
+  sesiones: number;
+  omitidas: number;
+  versionCreadaId: number | null;
+  conflictos: ConflictoDTO[];
+}
+export interface AuditoriaCambioDTO {
+  idAuditoria: number;
+  fecha: string;
+  usuario: string;
+  accion: string;
+  detalle: string;
+}
+export type TipoNovedad = 'INCAPACIDAD' | 'CAMBIO_DISPONIBILIDAD' | 'OTRA';
+export interface NovedadDocenteDTO {
+  idNovedad?: number;
+  docenteId: number;
+  docente?: string;
+  tipo: TipoNovedad;
+  diaSemana: DiaSemana;
+  horaInicio: string | null;
+  horaFin: string | null;
+  descripcion: string | null;
+  estado?: 'ABIERTA' | 'CERRADA';
+  registradaEn?: string;
+  registradaPor?: string;
+}
+export interface FranjaDTO {
+  diaSemana: DiaSemana;
+  horaInicio: string;
+  horaFin: string;
+}
+export interface ClaseAfectadaDTO {
+  sesion: SesionHorarioDTO;
+  asignatura: string;
+  grupo: string;
+  alternativas: FranjaDTO[];
 }
 export interface DatosPlaneacion {
   docentes: DocenteDTO[];

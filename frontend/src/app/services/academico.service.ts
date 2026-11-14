@@ -4,6 +4,12 @@ import { catchError, forkJoin, map, Observable, of, throwError } from 'rxjs';
 import { RecursoApi } from './recurso-api';
 import {
   AdministradorDTO,
+  AuditoriaCambioDTO,
+  ClaseAfectadaDTO,
+  ConflictoDTO,
+  NovedadDocenteDTO,
+  ResultadoCargaDTO,
+  VersionResumenDTO,
   AsignaturaDTO,
   ConfiguracionHorariosDTO,
   DatosPlaneacion,
@@ -70,7 +76,9 @@ export class AcademicoService {
       disponibilidades: this.disponibilidades.listar(),
     });
   }
-  horarioDocente(usuario: SesionUsuario): Observable<DatosPlaneacion> {
+  horarioDocente(
+    usuario: SesionUsuario,
+  ): Observable<DatosPlaneacion & Pick<HorarioDocenteDTO, 'versionPublicada' | 'publicadaEn'>> {
     return this.http.get<HorarioDocenteDTO>(`${environment.apiUrl}/mi-horario`).pipe(
       map((datos) => ({
         ...datos,
@@ -115,5 +123,38 @@ export class AcademicoService {
       `${environment.apiUrl}/sesiones/grupo/${grupoId}/generar`,
       null,
     );
+  }
+  versiones(): Observable<VersionResumenDTO[]> {
+    return this.http.get<VersionResumenDTO[]>(`${environment.apiUrl}/versiones`);
+  }
+  conflictos(): Observable<ConflictoDTO[]> {
+    return this.http.get<ConflictoDTO[]>(`${environment.apiUrl}/versiones/conflictos`);
+  }
+  guardarBorrador(nombre: string): Observable<VersionResumenDTO> {
+    return this.http.post<VersionResumenDTO>(`${environment.apiUrl}/versiones/borradores`, { nombre });
+  }
+  publicar(nombre: string): Observable<VersionResumenDTO> {
+    return this.http.post<VersionResumenDTO>(`${environment.apiUrl}/versiones/publicar`, { nombre });
+  }
+  cargarVersion(id: number): Observable<ResultadoCargaDTO> {
+    return this.http.post<ResultadoCargaDTO>(`${environment.apiUrl}/versiones/${id}/cargar`, null);
+  }
+  eliminarBorrador(id: number): Observable<void> {
+    return this.http.delete<void>(`${environment.apiUrl}/versiones/${id}`);
+  }
+  auditoria(): Observable<AuditoriaCambioDTO[]> {
+    return this.http.get<AuditoriaCambioDTO[]>(`${environment.apiUrl}/versiones/auditoria`);
+  }
+  novedades(): Observable<NovedadDocenteDTO[]> {
+    return this.http.get<NovedadDocenteDTO[]>(`${environment.apiUrl}/novedades`);
+  }
+  registrarNovedad(data: NovedadDocenteDTO): Observable<NovedadDocenteDTO> {
+    return this.http.post<NovedadDocenteDTO>(`${environment.apiUrl}/novedades`, data);
+  }
+  clasesAfectadas(id: number): Observable<ClaseAfectadaDTO[]> {
+    return this.http.get<ClaseAfectadaDTO[]>(`${environment.apiUrl}/novedades/${id}/afectadas`);
+  }
+  cerrarNovedad(id: number): Observable<NovedadDocenteDTO> {
+    return this.http.post<NovedadDocenteDTO>(`${environment.apiUrl}/novedades/${id}/cerrar`, null);
   }
 }
