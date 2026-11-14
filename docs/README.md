@@ -9,6 +9,12 @@
 
 El UML es la base del modelo. La implementación lo extiende con el cupo esperado de cada grupo, los límites de cupo de la configuración y la disponibilidad del docente, que pide el alcance del PMV.
 
+## Guías
+
+| Archivo | Contenido |
+|---|---|
+| [guia-usuarios-y-base-de-datos.md](guia-usuarios-y-base-de-datos.md) | Roles, cuentas de administrador y de docente, y uso de la base de datos. |
+
 ## Pendiente
 
 - Wireframe, mockup y prototipo aprobados.

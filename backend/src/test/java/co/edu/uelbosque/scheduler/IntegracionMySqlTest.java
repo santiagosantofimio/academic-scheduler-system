@@ -29,7 +29,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @SpringBootTest(properties = { "scheduler.admin.correo=admin@example.test", "scheduler.admin.contrasenia=clave-prueba" })
 @ActiveProfiles("dev")
 @Import(TestcontainersConfiguration.class)
-class IntegracionPostgresTest {
+class IntegracionMySqlTest {
     private static final long GRUPO_PROGRAMACION = 900001L;
     private static final long GRUPO_CALCULO = 900002L;
 

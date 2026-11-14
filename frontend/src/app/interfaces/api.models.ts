@@ -160,6 +160,7 @@ export interface DatosPlaneacion {
   grupos: GrupoDTO[];
   sesiones: SesionHorarioDTO[];
   configuracion: ConfiguracionHorariosDTO | null;
+  disponibilidades?: DisponibilidadDocenteDTO[];
 }
 export const DIAS: { valor: DiaSemana; nombre: string; corto: string }[] = [
   { valor: 'MONDAY', nombre: 'Lunes', corto: 'Lun' },

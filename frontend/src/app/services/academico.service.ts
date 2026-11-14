@@ -67,6 +67,7 @@ export class AcademicoService {
       grupos: this.grupos.listar(),
       sesiones: this.sesiones.listar(),
       configuracion: this.configuracion(),
+      disponibilidades: this.disponibilidades.listar(),
     });
   }
   horarioDocente(usuario: SesionUsuario): Observable<DatosPlaneacion> {

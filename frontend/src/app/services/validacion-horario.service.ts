@@ -93,6 +93,25 @@ export class ValidacionHorarioService {
           sesiones: propias.map((s) => s.idSesion!),
         });
     }
+    for (const a of sessions) {
+      const grupo = data.grupos.find((g) => g.idGrupo === a.grupoId);
+      const ventanas = (data.disponibilidades ?? []).filter((d) => d.docenteId === grupo?.docenteId);
+      if (!grupo?.docenteId || !ventanas.length) continue;
+      const fin = minutos(a.horaFin);
+      let cubierto = minutos(a.horaInicio);
+      for (const v of ventanas
+        .filter((d) => d.diaSemana === a.diaSemana)
+        .sort((x, y) => minutos(x.horaInicio) - minutos(y.horaInicio))) {
+        if (minutos(v.horaInicio) > cubierto) break;
+        cubierto = Math.max(cubierto, minutos(v.horaFin));
+      }
+      if (cubierto < fin)
+        result.push({
+          title: 'Fuera de la disponibilidad del docente',
+          detail: `${groupName(a.grupoId)} tiene una sesión en una franja en la que el docente no está disponible.`,
+          sesiones: [a.idSesion!],
+        });
+    }
     for (const teacher of data.docentes) {
       const ids = data.grupos.filter((g) => g.docenteId === teacher.id).map((g) => g.idGrupo);
       const propias = sessions.filter((s) => ids.includes(s.grupoId));

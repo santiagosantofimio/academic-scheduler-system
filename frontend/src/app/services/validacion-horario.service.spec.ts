@@ -103,6 +103,24 @@ describe('Revision y representacion del horario', () => {
       horaFin: '11:00',
     });
   });
+  it('advierte una sesion fuera de la disponibilidad registrada del docente', () => {
+    const base = data([a]);
+    base.disponibilidades = [
+      { docenteId: 1, diaSemana: 'MONDAY', horaInicio: '10:00', horaFin: '12:00' },
+    ];
+    expect(revisar.revisar(base).map((o) => o.title)).toEqual([
+      'Fuera de la disponibilidad del docente',
+    ]);
+  });
+  it('une franjas contiguas de disponibilidad y no advierte sin franjas registradas', () => {
+    const base = data([{ ...a, horaInicio: '08:30', horaFin: '09:30' }]);
+    base.disponibilidades = [
+      { docenteId: 1, diaSemana: 'MONDAY', horaInicio: '08:00', horaFin: '09:00' },
+      { docenteId: 1, diaSemana: 'MONDAY', horaInicio: '09:00', horaFin: '10:00' },
+    ];
+    expect(revisar.revisar(base)).toEqual([]);
+    expect(revisar.revisar(data([a]))).toEqual([]);
+  });
   it('las franjas contiguas no se consideran cruces', () => {
     expect(
       revisar.revisar(data([a, { ...a, idSesion: 2, horaInicio: '09:00', horaFin: '10:00' }])),

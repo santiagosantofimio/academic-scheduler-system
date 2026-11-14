@@ -7,7 +7,7 @@ import co.edu.uelbosque.scheduler.util.IdentidadJpa;
 @Entity
 public class DisponibilidadDocente {
 	@Id
-	@GeneratedValue(strategy = GenerationType.AUTO)
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long idDisponibilidad;
 	@Enumerated(EnumType.STRING)
 	private DayOfWeek diaSemana;

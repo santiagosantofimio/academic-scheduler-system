@@ -9,7 +9,7 @@ import co.edu.uelbosque.scheduler.util.IdentidadJpa;
 @Entity
 public class RequisitoAsignatura {
 	@Id
-	@GeneratedValue(strategy = GenerationType.AUTO)
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private long idRequisito;
 	@Enumerated(EnumType.STRING)
 	private TipoRequisito tipoRequisito;

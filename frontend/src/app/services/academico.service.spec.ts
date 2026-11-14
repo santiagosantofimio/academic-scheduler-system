@@ -92,7 +92,7 @@ describe('Servicios academicos y serializacion', () => {
     let rejected = false;
     api.planeacion().subscribe({ error: () => (rejected = true) });
     const requests = http.match(() => true);
-    expect(requests.length).toBe(6);
+    expect(requests.length).toBe(7);
     requests[0].flush({}, { status: 500, statusText: 'Error' });
     expect(rejected).toBeTrue();
   });

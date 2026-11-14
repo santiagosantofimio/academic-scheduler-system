@@ -41,16 +41,22 @@ Todas las relaciones son `@ManyToOne(fetch = LAZY)`, unidireccionales y sin borr
 
 ## Base de datos
 
+MySQL 8.4 con tablas InnoDB y `utf8mb4`. Los identificadores usan `AUTO_INCREMENT`. La conexión se configura con `SCHEDULER_DB_URL`, `SCHEDULER_DB_USUARIO` y `SCHEDULER_DB_CONTRASENIA`; sin ellas apunta a `jdbc:mysql://localhost:3306/scheduler` con usuario y contraseña `scheduler`, que es la base de `docker-compose.yml`. `SCHEDULER_DB_PUERTO` cambia el puerto a la vez en `docker-compose.yml` y en esa URL por defecto, para equipos que ya tienen MySQL en el 3306.
+
+Las conexiones usan aislamiento `READ COMMITTED`. Con el `REPEATABLE READ` que MySQL trae por defecto, una transacción que lee algo antes de esperar un bloqueo sigue viendo la base como estaba en esa primera lectura, y no vería las sesiones que otra transacción acaba de guardar. Es también el nivel que usaba el proyecto con PostgreSQL.
+
+La intercalación es `utf8mb4_0900_ai_ci`: las comparaciones de texto no distinguen mayúsculas ni tildes. Por eso `is101` choca con `IS101` en la unicidad de códigos y los filtros de texto encuentran ambas formas.
+
 Flyway aplica las migraciones al arrancar y Hibernate solo valida (`ddl-auto=validate`). Los cambios de esquema se hacen con una migración nueva, nunca editando una ya aplicada.
 
 | Ubicación | Contenido | Se aplica |
 |---|---|---|
-| `db/migration/V1__crear_esquema.sql` | Tablas, secuencias, índices y restricciones | Siempre |
+| `db/migration/V1__crear_esquema.sql` | Tablas, índices y restricciones | Siempre |
 | `db/seed/R__datos_demo.sql` | Datos de demostración | Solo con el perfil `dev` |
 
 Los datos de demostración cargan el plan de estudios 2025 de Ingeniería de Sistemas: 58 asignaturas en 9 semestres y 148 créditos. Los códigos `ISsnn` (semestre y orden) son internos; el plan oficial no los publica. Cada asignatura tiene una sesión semanal por cada 2 créditos, salvo Trabajo de grado, que tiene una. También incluyen 4 docentes, disponibilidad para dos de ellos y 7 grupos, uno sin docente.
 
-Los datos de demostración usan identificadores desde 900001, lejos de los que asignan las secuencias, y las contraseñas de sus docentes no se conocen. Se pueden activar sobre una base que ya tenga datos.
+Los datos de demostración usan identificadores desde 900001 y las contraseñas de sus docentes no se conocen. Después de cargarlos, MySQL sigue numerando cada tabla desde su mayor identificador. Necesitan MySQL 8.0.19 o superior por la sintaxis `VALUES ROW`. Se pueden activar sobre una base que ya tenga datos.
 
 ## Administrador inicial
 
@@ -138,7 +144,7 @@ El rol `DOCENTE` solo lee su propio horario: sus grupos, sus asignaturas, sus se
 ./mvnw test
 ```
 
-Cubren servicios con repositorios simulados, contrato HTTP, seguridad y metadatos JPA. `AcademicSchedulerApplicationTests` e `IntegracionPostgresTest` levantan PostgreSQL 17 con Testcontainers y comprueban migraciones, datos de demostración, administrador inicial, restricciones de la base y generaciones simultáneas. Se omiten si Docker no está activo.
+Cubren servicios con repositorios simulados, contrato HTTP, seguridad y metadatos JPA. `AcademicSchedulerApplicationTests` e `IntegracionMySqlTest` levantan MySQL 8.4 con Testcontainers y comprueban migraciones, datos de demostración, administrador inicial, restricciones de la base y generaciones simultáneas. Se omiten si Docker no está activo.
 
 ## Pendientes
 
