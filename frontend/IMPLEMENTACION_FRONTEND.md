@@ -10,7 +10,7 @@ src/app
 ├── interceptors    Credenciales, token CSRF y manejo de sesión vencida
 ├── interfaces      Contratos de la API
 ├── modules
-│   ├── admin       Inicio, docentes, catálogos, configuración, horarios, validaciones
+│   ├── admin       Inicio, docentes, catálogos, configuración, horarios, validaciones, versiones, novedades
 │   ├── auth        Inicio de sesión
 │   └── layout      Menú, cuenta y Mi horario
 ├── services        Acceso a la API y revisión local del horario
@@ -34,7 +34,9 @@ Los módulos Auth, Layout y Admin se cargan de forma diferida. Los catálogos co
 | Ajuste visual | El arrastre propone día y hora; solo guardar envía el cambio. |
 | Validaciones | Revisión local de cruces de docente y grupo, franjas, duración, cantidad, carga, días consecutivos y disponibilidad del docente. La decisión final es del servidor. |
 | Exportación | Descarga de CSV y PDF con los filtros activos. |
-| Mi horario | Vista de solo lectura del horario propio para el rol Docente, con exportación. Usa `GET /api/mi-horario`. |
+| Versiones y publicación | Conflictos revisados por el servidor, borradores con nombre, publicación, tabla para comparar versiones, carga o recuperación de una versión e historial de cambios. |
+| Novedades | Registro de incapacidades o cambios de disponibilidad, clases afectadas y franjas válidas para moverlas con un clic, y cierre de la novedad. |
+| Mi horario | Vista de solo lectura del horario publicado del docente, con el nombre y la fecha de la versión, y exportación. Usa `GET /api/mi-horario`. |
 
 ## Sistema visual
 
@@ -61,4 +63,4 @@ Las pruebas usan Jasmine y Karma con ChromeHeadless. Si no hay Chrome instalado,
 
 ## Pendientes
 
-- Comparación de alternativas, publicación e historial de horarios, que no tienen soporte en el backend.
+- La sesión vive en memoria: recargar la página pide ingresar de nuevo.

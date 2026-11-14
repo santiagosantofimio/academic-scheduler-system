@@ -52,6 +52,7 @@ Flyway aplica las migraciones al arrancar y Hibernate solo valida (`ddl-auto=val
 | Ubicación | Contenido | Se aplica |
 |---|---|---|
 | `db/migration/V1__crear_esquema.sql` | Tablas, índices y restricciones | Siempre |
+| `db/migration/V2__versiones_novedades_auditoria.sql` | Versiones, novedades e historial de cambios | Siempre |
 | `db/seed/R__datos_demo.sql` | Datos de demostración | Solo con el perfil `dev` |
 
 Los datos de demostración cargan el plan de estudios 2025 de Ingeniería de Sistemas: 58 asignaturas en 9 semestres y 148 créditos. Los códigos `ISsnn` (semestre y orden) son internos; el plan oficial no los publica. Cada asignatura tiene una sesión semanal por cada 2 créditos, salvo Trabajo de grado, que tiene una. También incluyen 4 docentes, disponibilidad para dos de ellos y 7 grupos, uno sin docente.
@@ -89,6 +90,19 @@ Las escrituras toman primero un bloqueo pesimista sobre la configuración, y la 
 
 Repetir la operación sobre un grupo completo no cambia nada. El sistema genera por grupo: no elige docente ni optimiza todos los grupos a la vez.
 
+## Versiones, publicación y novedades
+
+Las tablas `sesion_horario` guardan el horario de trabajo, el que el administrador edita. Las versiones son copias de ese horario en `version_horario` y `version_sesion`.
+
+- Borrador: copia del horario de trabajo con un nombre. Se puede cargar de nuevo como horario de trabajo sin tocar los demás borradores.
+- Publicación: antes de copiar, el servidor revisa cada sesión programada con las mismas reglas de un ajuste manual. Si alguna falla, responde 409 con la sesión y la regla. Si no, la nueva versión queda `PUBLICADA` y la anterior pasa a `HISTORICA`.
+- Recuperación: cargar una versión publicada o histórica la vuelve horario de trabajo y deja una copia como borrador nuevo; no borra ninguna versión.
+- Comparación: cada versión trae sesiones, docentes, carga máxima y mínima por docente, diferencia de carga, horas muertas entre clases del mismo docente (sin contar el descanso) y promedio de días con clase por docente.
+
+Una novedad (`novedad_docente`) registra que un docente no puede dictar clase un día, en una franja o todo el día. Mientras está abierta funciona como falta de disponibilidad: el ajuste manual y la generación la respetan, y las sesiones que ya caían ahí aparecen como conflicto. Para cada clase afectada el servidor propone franjas válidas que no mueven las demás clases. Al cerrarla, la franja se libera.
+
+Cada cambio del horario (alta, ajuste, eliminación y generación de sesiones, borradores, publicaciones, recuperaciones y novedades) queda en `auditoria_cambio` con la fecha y el correo de quien lo hizo.
+
 ## API
 
 Cada recurso ofrece `POST` (201), `GET`, `GET /{id}`, `PUT /{id}`, `DELETE /{id}` (204), `GET /cantidad` y `GET /{id}/existe`. Los filtros son `GET <ruta>/por-<filtro>?valor=...` y comparan por igualdad.
@@ -118,6 +132,17 @@ Rutas adicionales:
 | GET | `/api/mi-horario` | Horario propio del docente autenticado |
 | GET | `/api/mi-horario/exportar/csv` y `/pdf` | Exportación del horario propio |
 | GET | `/api/csrf` | Token CSRF |
+| GET | `/api/versiones` | Versiones con sus indicadores |
+| GET | `/api/versiones/{id}` | Versión con sus sesiones |
+| GET | `/api/versiones/conflictos` | Conflictos del horario de trabajo con la regla incumplida |
+| POST | `/api/versiones/borradores` | Guardar el horario de trabajo como borrador (`{"nombre": "..."}`) |
+| POST | `/api/versiones/publicar` | Publicar el horario de trabajo; 409 si hay conflictos |
+| POST | `/api/versiones/{id}/cargar` | Volver una versión horario de trabajo |
+| DELETE | `/api/versiones/{id}` | Eliminar un borrador |
+| GET | `/api/versiones/auditoria` | Últimos 200 cambios con usuario y fecha |
+| GET, POST | `/api/novedades` | Listar y registrar novedades |
+| GET | `/api/novedades/{id}/afectadas` | Clases afectadas y franjas válidas para cada una |
+| POST | `/api/novedades/{id}/cerrar` | Cerrar una novedad |
 
 Las exportaciones aceptan los parámetros opcionales `grupo` y `docente`, e incluyen solo sesiones programadas.
 
@@ -136,7 +161,7 @@ Las peticiones con `X-Requested-With: XMLHttpRequest` reciben el 401 sin `WWW-Au
 | `GET /api/mi-horario` y `GET /api/mi-horario/exportar/{csv,pdf}` | `DOCENTE` |
 | Resto de `/api/**` | `ADMINISTRADOR` |
 
-El rol `DOCENTE` solo lee su propio horario: sus grupos, sus asignaturas, sus sesiones programadas y la configuración. No crea, modifica ni elimina información, y no accede a datos de otros docentes.
+El rol `DOCENTE` solo lee su propio horario: sus grupos, sus asignaturas, sus sesiones de la versión publicada vigente y la configuración. Los cambios que el administrador hace en el horario de trabajo no le llegan hasta que se publique. No crea, modifica ni elimina información, y no accede a datos de otros docentes.
 
 ## Pruebas
 
@@ -144,9 +169,11 @@ El rol `DOCENTE` solo lee su propio horario: sus grupos, sus asignaturas, sus se
 ./mvnw test
 ```
 
-Cubren servicios con repositorios simulados, contrato HTTP, seguridad y metadatos JPA. `AcademicSchedulerApplicationTests` e `IntegracionMySqlTest` levantan MySQL 8.4 con Testcontainers y comprueban migraciones, datos de demostración, administrador inicial, restricciones de la base y generaciones simultáneas. Se omiten si Docker no está activo.
+Cubren servicios con repositorios simulados, contrato HTTP, seguridad y metadatos JPA. `AcademicSchedulerApplicationTests` e `IntegracionMySqlTest` levantan MySQL 8.4 con Testcontainers y comprueban migraciones, datos de demostración, administrador inicial, restricciones de la base, generaciones simultáneas, publicación con y sin conflictos, borradores y recuperación, novedades con franjas alternativas, el historial de cambios y que generar y validar respondan en menos de dos segundos. Se omiten si Docker no está activo.
 
 ## Pendientes
 
-- HTTPS en despliegue.
+- HTTPS en despliegue. En local el backend corre en HTTP.
+- Copia de seguridad diaria de la base. No hay una tarea programada; se puede respaldar a mano con `mysqldump`.
 - Cuentas de docentes con contraseña inicial. Hoy la asigna el administrador.
+- Al publicar se guarda el grupo de cada sesión, no el docente. Si después se cambia el docente de un grupo, conviene publicar de nuevo.

@@ -6,14 +6,14 @@ Cómo entrar al sistema con cada rol, qué cuentas trae la base de demostración
 
 | Rol | Quién lo usa | Qué puede hacer |
 |---|---|---|
-| Administrador | Coordinador de horarios | Gestión completa: docentes, planes de estudio, asignaturas, grupos, requisitos, administradores, configuración y horarios. Genera, mueve y valida sesiones, y exporta el horario a CSV y PDF. |
-| Docente | Profesor | Solo consulta. Ve su propio horario en "Mi horario" y lo exporta a CSV y PDF. No crea, modifica ni elimina información y no ve datos de otros docentes. |
+| Administrador | Coordinador de horarios | Gestión completa: docentes, planes de estudio, asignaturas, grupos, requisitos, administradores, configuración y horarios. Genera, mueve y valida sesiones, guarda borradores, publica el horario, registra novedades de docentes y exporta el horario a CSV y PDF. |
+| Docente | Profesor | Solo consulta. Ve en "Mi horario" su parte del último horario publicado y la exporta a CSV y PDF. No crea, modifica ni elimina información y no ve datos de otros docentes. |
 
 El inicio de sesión es el mismo para los dos: correo institucional y contraseña. El sistema reconoce el rol y muestra el menú que corresponde.
 
 | Rol | Menú |
 |---|---|
-| Administrador | Inicio, Docentes, Planes de estudio, Asignaturas, Grupos, Horarios, Validaciones, Requisitos académicos, Administradores y Configuración. |
+| Administrador | Inicio, Docentes, Planes de estudio, Asignaturas, Grupos, Horarios, Validaciones, Versiones y publicación, Novedades, Requisitos académicos, Administradores y Configuración. |
 | Docente | Mi horario y Cuenta. |
 
 ## Cuentas
@@ -137,7 +137,7 @@ Se necesita MySQL 8.0.19 o superior. XAMPP trae MariaDB en lugar de MySQL, y con
 
 ### Cómo se crea el esquema
 
-No hay que correr ningún script a mano. Al arrancar, el backend aplica con Flyway la migración `backend/src/main/resources/db/migration/V1__crear_esquema.sql`, que crea las tablas, y Hibernate solo comprueba que coincidan con las entidades. Flyway anota lo aplicado en la tabla `flyway_schema_history`. Los identificadores de cada tabla se generan con `AUTO_INCREMENT`.
+No hay que correr ningún script a mano. Al arrancar, el backend aplica con Flyway las migraciones de `backend/src/main/resources/db/migration/` (`V1__crear_esquema.sql` y `V2__versiones_novedades_auditoria.sql`), que crean las tablas, y Hibernate solo comprueba que coincidan con las entidades. Flyway anota lo aplicado en la tabla `flyway_schema_history`. Los identificadores de cada tabla se generan con `AUTO_INCREMENT`.
 
 Con el perfil `dev` se aplica además `backend/src/main/resources/db/seed/R__datos_demo.sql`: el plan de estudios 2025 de Ingeniería de Sistemas (58 asignaturas en 9 semestres), la configuración institucional, los cuatro docentes, su disponibilidad y los siete grupos. Sus identificadores empiezan en 900001 y no duplica datos si ya están. Después de cargarlos, MySQL sigue numerando cada tabla desde el identificador más alto, así que lo que se cree desde la aplicación recibe números por encima de 900000.
 
@@ -159,6 +159,10 @@ Sin el perfil `dev` solo se crea el esquema vacío, y el administrador inicial s
 | `grupo` | Número de grupo, estado y cupo esperado. | `asignatura` y, si lo tiene, `docente` |
 | `sesion_horario` | Día, hora de inicio, hora de fin y estado de cada clase. | `grupo` |
 | `configuracion_horarios` | Horario institucional, descanso, duración de sesión, máximo de sesiones y límites de cupo. Hay una sola fila. | Ninguna |
+| `version_horario` | Borradores y versiones publicadas del horario, con quién y cuándo. | Tiene muchas `version_sesion`; `origen_id` apunta a la versión de la que se recuperó. |
+| `version_sesion` | Copia de cada sesión dentro de una versión. | `version_horario` y `grupo` |
+| `novedad_docente` | Incapacidades o cambios de disponibilidad de un docente, abiertos o cerrados. | `docente` |
+| `auditoria_cambio` | Historial de cambios del horario con fecha, correo y detalle. | Ninguna |
 
 La sesión no guarda el docente: se obtiene a través de su grupo.
 
