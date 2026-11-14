@@ -120,7 +120,7 @@ export class VersionesComponent implements OnInit {
           const omitidas = r.omitidas ? ` ${r.omitidas} sesiones de grupos eliminados no se cargaron.` : '';
           const copia = r.versionCreadaId ? ' Se creó un borrador nuevo a partir de ella.' : '';
           const conflictos = r.conflictos.length
-            ? ` Hay ${r.conflictos.length} conflictos con las reglas actuales; revísalos antes de publicar.`
+            ? ` Hay ${r.conflictos.length} ${r.conflictos.length === 1 ? 'conflicto' : 'conflictos'} con las reglas actuales; revísalos antes de publicar.`
             : '';
           this.success = `Se cargó "${version.nombre}" con ${r.sesiones} sesiones.${copia}${omitidas}${conflictos}`;
           this.load();

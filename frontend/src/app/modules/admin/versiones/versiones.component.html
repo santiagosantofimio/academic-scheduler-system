@@ -30,7 +30,7 @@
         <h3>
           {{
             conflictos.length
-              ? conflictos.length + ' conflictos con reglas obligatorias'
+              ? conflictos.length + (conflictos.length === 1 ? ' conflicto' : ' conflictos') + ' con reglas obligatorias'
               : 'Sin conflictos con las reglas obligatorias'
           }}
         </h3>
