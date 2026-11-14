@@ -24,6 +24,7 @@ class SesionHorarioServiceTest {
     private List<SesionHorario> existentes;
     private List<SesionHorario> agenda;
     private List<DisponibilidadDocente> ventanas;
+    private List<NovedadDocente> abiertas;
 
     @BeforeEach
     void preparar() {
@@ -33,7 +34,11 @@ class SesionHorarioServiceTest {
         var disponibilidades = mock(DisponibilidadDocenteRepository.class);
         ventanas = new ArrayList<>();
         when(disponibilidades.findByDocenteId(20L)).thenReturn(ventanas);
-        servicio = new SesionHorarioService(sesiones, grupos, docentes, configuraciones, requisitos, disponibilidades);
+        var novedades = mock(NovedadDocenteRepository.class);
+        abiertas = new ArrayList<>();
+        when(novedades.buscarPorDocente(20L, EstadoNovedad.ABIERTA)).thenReturn(abiertas);
+        servicio = new SesionHorarioService(sesiones, grupos, docentes, configuraciones, requisitos, disponibilidades,
+                novedades, mock(AuditoriaService.class));
         config = new ConfiguracionHorarios(LocalTime.of(8,0), LocalTime.of(12,0),
                 LocalTime.of(8,0), LocalTime.of(12,0), null, null, 60, 6, false);
         config.setIdConfiguracion(1L);
@@ -228,5 +233,41 @@ class SesionHorarioServiceTest {
         agenda.add(sesion(80,DayOfWeek.MONDAY,8,0,60,null));
         assertFalse(servicio.validarCruceDocente(20L,DayOfWeek.MONDAY,LocalTime.of(9,0),LocalTime.of(10,0)));
         assertFalse(servicio.validarFranjaInstitucional(DayOfWeek.SUNDAY,LocalTime.of(8,0),LocalTime.of(9,0)));
+    }
+    private void novedad(DayOfWeek dia, Integer desde, Integer hasta) {
+        NovedadDocente n = new NovedadDocente();
+        n.setDocente(docente); n.setTipo(TipoNovedad.INCAPACIDAD); n.setDiaSemana(dia);
+        n.setEstado(EstadoNovedad.ABIERTA);
+        if (desde != null) { n.setHoraInicio(LocalTime.of(desde,0)); n.setHoraFin(LocalTime.of(hasta,0)); }
+        abiertas.add(n);
+    }
+    @Test void unaNovedadAbiertaBloqueaElAltaManualYLaGeneracionLaEvita() {
+        novedad(DayOfWeek.MONDAY, null, null);
+        assertThrows(DisponibilidadInvalidaException.class, () -> servicio.create(nuevaSesion(DayOfWeek.MONDAY,8)));
+        var resultado = servicio.generarHorarioGrupo(30L);
+        assertEquals(3, resultado.size());
+        assertTrue(resultado.stream().noneMatch(s -> s.getDiaSemana() == DayOfWeek.MONDAY));
+    }
+    @Test void losConflictosNombranLaSesionYLaReglaIncumplida() {
+        SesionHorario afectada = sesion(90L, DayOfWeek.TUESDAY, 9, 0, 60, grupo);
+        SesionHorario valida = sesion(91L, DayOfWeek.THURSDAY, 9, 0, 60, grupo);
+        existentes.addAll(List.of(afectada, valida)); agenda.addAll(List.of(afectada, valida));
+        when(sesiones.findByEstado(EstadoSesion.PROGRAMADA)).thenReturn(Optional.of(List.of(afectada, valida)));
+        assertTrue(servicio.conflictos().isEmpty());
+        novedad(DayOfWeek.TUESDAY, 9, 10);
+        var conflictos = servicio.conflictos();
+        assertEquals(1, conflictos.size());
+        assertEquals(90L, conflictos.getFirst().sesionId());
+        assertTrue(conflictos.getFirst().regla().contains("novedad"));
+    }
+    @Test void lasAlternativasNoIncluyenLaFranjaBloqueadaNiCrucesDelDocente() {
+        SesionHorario afectada = sesion(90L, DayOfWeek.TUESDAY, 9, 0, 60, grupo);
+        existentes.add(afectada); agenda.add(afectada);
+        agenda.add(sesion(95L, DayOfWeek.MONDAY, 8, 0, 60, null));
+        novedad(DayOfWeek.TUESDAY, null, null);
+        var franjas = servicio.alternativas(afectada, 20);
+        assertFalse(franjas.isEmpty());
+        assertTrue(franjas.stream().noneMatch(f -> f.diaSemana() == DayOfWeek.TUESDAY));
+        assertTrue(franjas.stream().noneMatch(f -> f.diaSemana() == DayOfWeek.MONDAY && f.horaInicio().equals(LocalTime.of(8,0))));
     }
 }

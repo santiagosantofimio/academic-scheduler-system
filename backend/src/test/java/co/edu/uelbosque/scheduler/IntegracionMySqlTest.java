@@ -23,6 +23,20 @@ import co.edu.uelbosque.scheduler.exception.AsignacionAcademicaInvalidaException
 import co.edu.uelbosque.scheduler.service.GrupoService;
 import co.edu.uelbosque.scheduler.service.HorarioDocenteService;
 import co.edu.uelbosque.scheduler.service.SesionHorarioService;
+import co.edu.uelbosque.scheduler.service.VersionHorarioService;
+import co.edu.uelbosque.scheduler.service.NovedadDocenteService;
+import co.edu.uelbosque.scheduler.service.AuditoriaService;
+import co.edu.uelbosque.scheduler.dto.NombreVersionDTO;
+import co.edu.uelbosque.scheduler.dto.NovedadDocenteDTO;
+import co.edu.uelbosque.scheduler.entity.EstadoSesion;
+import co.edu.uelbosque.scheduler.entity.EstadoVersion;
+import co.edu.uelbosque.scheduler.entity.TipoNovedad;
+import co.edu.uelbosque.scheduler.exception.DisponibilidadInvalidaException;
+import co.edu.uelbosque.scheduler.exception.PublicacionRechazadaException;
+import org.junit.jupiter.api.BeforeEach;
+import org.springframework.security.authentication.TestingAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
+import java.time.DayOfWeek;
 import static org.junit.jupiter.api.Assertions.*;
 
 @Testcontainers(disabledWithoutDocker = true)
@@ -41,15 +55,25 @@ class IntegracionMySqlTest {
     @Autowired private GrupoService grupos;
     @Autowired private HorarioDocenteService miHorario;
     @Autowired private DocenteService docentes;
+    @Autowired private VersionHorarioService versiones;
+    @Autowired private NovedadDocenteService novedades;
+    @Autowired private AuditoriaService auditoria;
 
+    @BeforeEach void autenticar() {
+        SecurityContextHolder.getContext().setAuthentication(new TestingAuthenticationToken("admin@example.test", null));
+    }
     @AfterEach void limpiar() {
+        SecurityContextHolder.clearContext();
         jdbc.update("delete from sesion_horario");
+        jdbc.update("delete from version_horario");
+        jdbc.update("delete from novedad_docente");
+        jdbc.update("delete from auditoria_cambio");
     }
     private long contar(String sql) {
         return jdbc.queryForObject(sql, Long.class);
     }
     @Test void aplicaLaMigracionYLosDatosDeDemostracion() {
-        assertEquals(2, contar("select count(*) from flyway_schema_history where success"));
+        assertEquals(3, contar("select count(*) from flyway_schema_history where success"));
         assertEquals(4, contar("select count(*) from docente"));
         assertEquals(7, contar("select count(*) from grupo"));
         assertEquals(58, contar("select count(*) from asignatura"));
@@ -91,9 +115,11 @@ class IntegracionMySqlTest {
         assertThrows(DataIntegrityViolationException.class, () -> grupos.deleteById(GRUPO_PROGRAMACION));
         assertEquals(1, contar("select count(*) from grupo where id_grupo = " + GRUPO_PROGRAMACION));
     }
-    @Test void elDocenteSoloRecibeSuPropioHorario() {
+    @Test void elDocenteSoloRecibeSuPropioHorarioPublicado() {
         sesiones.generarHorarioGrupo(GRUPO_PROGRAMACION);
         sesiones.generarHorarioGrupo(900003L);
+        assertTrue(miHorario.consultar("lmendez@unbosque.edu.co").sesiones().isEmpty());
+        versiones.publicar(new NombreVersionDTO("Horario 2026-2"));
         var propio = miHorario.consultar("lmendez@unbosque.edu.co");
         assertEquals(2, propio.sesiones().size());
         assertTrue(propio.sesiones().stream().allMatch(s -> s.getGrupoId() == GRUPO_PROGRAMACION));
@@ -113,5 +139,76 @@ class IntegracionMySqlTest {
         assertEquals(0, contar("select count(*) from usuario where id = 777001"));
         assertEquals(0, contar("select count(*) from disponibilidad_docente where docente_id = 777001"));
         assertEquals(4, contar("select count(*) from docente"));
+    }
+    @Test void publicarExigeUnHorarioSinConflictosYConservaLasVersionesAnteriores() {
+        sesiones.generarHorarioGrupo(GRUPO_PROGRAMACION);
+        var primera = versiones.publicar(new NombreVersionDTO("Version 1"));
+        assertEquals(EstadoVersion.PUBLICADA, primera.estado());
+        assertEquals("admin@example.test", primera.publicadaPor());
+        var clase = sesiones.findByGrupoId(GRUPO_PROGRAMACION).getFirst();
+        jdbc.update("insert into novedad_docente (docente_id, tipo, dia_semana, estado, registrada_en, registrada_por) values (900001, 'INCAPACIDAD', ?, 'ABIERTA', now(), 'prueba')",
+                clase.getDiaSemana().name());
+        var rechazo = assertThrows(PublicacionRechazadaException.class, () -> versiones.publicar(new NombreVersionDTO("Version 2")));
+        assertTrue(rechazo.getMessage().contains("novedad"));
+        assertEquals(1, versiones.conflictos().size());
+        assertEquals(1, contar("select count(*) from version_horario where estado = 'PUBLICADA'"));
+        jdbc.update("delete from novedad_docente");
+        versiones.publicar(new NombreVersionDTO("Version 2"));
+        assertEquals(1, contar("select count(*) from version_horario where estado = 'PUBLICADA' and nombre = 'Version 2'"));
+        assertEquals(1, contar("select count(*) from version_horario where estado = 'HISTORICA' and nombre = 'Version 1'"));
+    }
+    @Test void losBorradoresSeComparanYSeRecuperanSinModificarLosDemas() {
+        sesiones.generarHorarioGrupo(GRUPO_PROGRAMACION);
+        sesiones.generarHorarioGrupo(GRUPO_CALCULO);
+        var completo = versiones.guardarBorrador(new NombreVersionDTO("Completo"));
+        sesiones.deleteById(sesiones.findByGrupoId(GRUPO_CALCULO).getFirst().getIdSesion());
+        var parcial = versiones.guardarBorrador(new NombreVersionDTO("Parcial"));
+        assertEquals(3, completo.indicadores().sesiones());
+        assertEquals(2, parcial.indicadores().sesiones());
+        assertEquals(6.0, completo.indicadores().cargaMaxima());
+        assertEquals(4.0, parcial.indicadores().cargaMaxima());
+        var carga = versiones.cargar(completo.idVersion());
+        assertEquals(3, carga.sesiones());
+        assertNull(carga.versionCreadaId());
+        assertTrue(carga.conflictos().isEmpty());
+        assertEquals(3, contar("select count(*) from sesion_horario"));
+        assertEquals(2, versiones.detalle(parcial.idVersion()).sesiones().size());
+        var publicada = versiones.publicar(new NombreVersionDTO("Oficial"));
+        var recuperada = versiones.cargar(publicada.idVersion());
+        assertNotNull(recuperada.versionCreadaId());
+        assertEquals(4, contar("select count(*) from version_horario"));
+        assertTrue(auditoria.recientes().stream().anyMatch(a -> a.accion().equals("PUBLICAR") && a.usuario().equals("admin@example.test")));
+        assertTrue(auditoria.recientes().stream().anyMatch(a -> a.accion().equals("ELIMINAR_SESION")));
+    }
+    @Test void unaNovedadListaLasClasesAfectadasYSugiereFranjasValidas() {
+        sesiones.generarHorarioGrupo(GRUPO_PROGRAMACION);
+        var clase = sesiones.findByGrupoId(GRUPO_PROGRAMACION).getFirst();
+        var novedad = novedades.registrar(new NovedadDocenteDTO(null, 900001L, null, TipoNovedad.INCAPACIDAD,
+                clase.getDiaSemana(), null, null, "Cita medica", null, null, null));
+        var afectadas = novedades.afectadas(novedad.idNovedad());
+        assertEquals(1, afectadas.size());
+        var franja = afectadas.getFirst().alternativas().getFirst();
+        assertNotEquals(clase.getDiaSemana(), franja.diaSemana());
+        var ajuste = new SesionHorarioDTO(franja.diaSemana(), franja.horaInicio(), franja.horaFin(), EstadoSesion.PROGRAMADA);
+        ajuste.setGrupoId(GRUPO_PROGRAMACION);
+        sesiones.updateById(clase.getIdSesion(), ajuste);
+        assertTrue(novedades.afectadas(novedad.idNovedad()).isEmpty());
+        assertTrue(versiones.conflictos().isEmpty());
+        var regreso = new SesionHorarioDTO(clase.getDiaSemana(), clase.getHoraInicio(), clase.getHoraFin(), EstadoSesion.PROGRAMADA);
+        regreso.setGrupoId(GRUPO_PROGRAMACION);
+        assertThrows(DisponibilidadInvalidaException.class, () -> sesiones.updateById(clase.getIdSesion(), regreso));
+        novedades.cerrar(novedad.idNovedad());
+        sesiones.updateById(clase.getIdSesion(), regreso);
+    }
+    @Test void validarYGenerarRespondenEnMenosDeDosSegundos() {
+        long inicio = System.nanoTime();
+        sesiones.generarHorarioGrupo(GRUPO_PROGRAMACION);
+        long generar = (System.nanoTime() - inicio) / 1_000_000;
+        inicio = System.nanoTime();
+        versiones.conflictos();
+        long validar = (System.nanoTime() - inicio) / 1_000_000;
+        System.out.println("Tiempo de generacion: " + generar + " ms; tiempo de validacion: " + validar + " ms");
+        assertTrue(generar < 2000);
+        assertTrue(validar < 2000);
     }
 }

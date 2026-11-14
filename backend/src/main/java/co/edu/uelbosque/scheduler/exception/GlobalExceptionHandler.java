@@ -22,7 +22,7 @@ public class GlobalExceptionHandler {
 	}
 
 	@ExceptionHandler({ DuplicadoException.class, CruceHorarioException.class, DisponibilidadInvalidaException.class,
-			AsignacionAcademicaInvalidaException.class })
+			AsignacionAcademicaInvalidaException.class, PublicacionRechazadaException.class })
 	public ProblemDetail conflicto(RuntimeException error, HttpServletRequest request) {
 		return problema(HttpStatus.CONFLICT, error.getMessage(), request);
 	}
