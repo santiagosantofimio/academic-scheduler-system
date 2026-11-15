@@ -1,5 +1,7 @@
 package co.edu.uelbosque.scheduler.service;
 
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import java.util.*;
 import java.time.*;
 import org.springframework.stereotype.Service;
@@ -41,7 +43,17 @@ public class AdministradorService extends AbstractCrudService<Administrador, Adm
 	}
 
 	@Override
+	@Transactional
+	public int deleteById(Long id) {
+		Administrador entity = requerido(id);
+		protegerAcceso(entity, "eliminar");
+		return super.deleteById(id);
+	}
+
+	@Override
 	protected void aplicar(AdministradorDTO data, Administrador entity, boolean nuevo) {
+		if (!nuevo && entity.isEstado() && !data.isEstado())
+			protegerAcceso(entity, "desactivar");
 		datosUsuario.aplicar(data, entity, nuevo);
 		entity.setCargo(texto(data.getCargo(), "cargo"));
 	}
@@ -60,5 +72,16 @@ public class AdministradorService extends AbstractCrudService<Administrador, Adm
 
 	public List<AdministradorDTO> findByCargo(String valor) {
 		return rep.findByCargo(valor).orElseGet(List::of).stream().map(DtoMapper::toDto).toList();
+	}
+
+	private void protegerAcceso(Administrador entity, String accion) {
+		Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+		if (auth != null && entity.getCorreoInstitucional().equalsIgnoreCase(auth.getName()))
+			throw new AsignacionAcademicaInvalidaException("No puede " + accion + " su propia cuenta de administrador");
+		long otrosActivos = rep.findAll().stream()
+				.filter(a -> a.isEstado() && !Objects.equals(a.getId(), entity.getId())).count();
+		if (entity.isEstado() && otrosActivos == 0)
+			throw new AsignacionAcademicaInvalidaException(
+					"No puede " + accion + " al unico administrador activo; el sistema quedaria sin acceso");
 	}
 }

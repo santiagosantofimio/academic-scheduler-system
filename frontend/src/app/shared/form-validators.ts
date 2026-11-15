@@ -9,6 +9,8 @@ export const passwordBytes: ValidatorFn = (control) =>
   control.value && new TextEncoder().encode(control.value).length > 72
     ? { passwordBytes: true }
     : null;
+export const passwordMinimo: ValidatorFn = (control) =>
+  control.value && Array.from(String(control.value)).length < 8 ? { passwordMinimo: true } : null;
 export const correoInstitucional: ValidatorFn = (control) =>
   /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(control.value).trim()) ? null : { email: true };
 export function fechaActual(): string {

@@ -42,9 +42,9 @@ public class PlanEstudiosService extends AbstractCrudService<PlanEstudios, PlanE
 
 	@Override
 	protected void aplicar(PlanEstudiosDTO data, PlanEstudios entity, boolean nuevo) {
-		texto(data.getNombrePrograma(), "nombrePrograma");
-		texto(data.getCodigoPrograma(), "codigoPrograma");
-		texto(data.getVersionPlan(), "versionPlan");
+		data.setNombrePrograma(texto(data.getNombrePrograma(), "nombrePrograma"));
+		data.setCodigoPrograma(texto(data.getCodigoPrograma(), "codigoPrograma"));
+		data.setVersionPlan(texto(data.getVersionPlan(), "versionPlan"));
 		verificarSemestre(data.getNumerosSemestres());
 		verificarDuplicado(rep.findByCodigoPrograma(data.getCodigoPrograma()).orElseGet(List::of).stream()
 				.anyMatch(p -> !Objects.equals(p.getIdPlan(), entity.getIdPlan())), "Codigo del programa");

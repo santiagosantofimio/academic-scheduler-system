@@ -82,8 +82,8 @@ public class FormacionAcademicaService extends AbstractCrudService<FormacionAcad
 		verificarNivelFormacion(data.getNivelFormacion());
 		verificarAreaConocimiento(data.getAreaConocimiento());
 		texto(data.getInstitucion(), "institucion");
-		if (data.getAnioGraduacion() <= 0 || data.getAnioGraduacion() > Year.now(clock).getValue())
-			throw new DatosInvalidosException("El anio de graduacion debe ser valido y no futuro");
+		if (data.getAnioGraduacion() < 1950 || data.getAnioGraduacion() > Year.now(clock).getValue())
+			throw new DatosInvalidosException("El anio de graduacion debe estar entre 1950 y el anio actual");
 		Long padre = data.getDocenteId() != null ? data.getDocenteId()
 				: entity.getDocente() == null ? null : entity.getDocente().getId();
 		verificarId(padre);

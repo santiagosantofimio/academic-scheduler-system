@@ -73,8 +73,8 @@ public class DocenteService extends AbstractCrudService<Docente, DocenteDTO> {
 	@Override
 	protected void aplicar(DocenteDTO data, Docente entity, boolean nuevo) {
 		verificarTipoVinculacion(data.getTipoVinculacion());
-		if (data.getHorasMaximasDocenciaSemanal() < 0)
-			throw new DatosInvalidosException("Las horas maximas no pueden ser negativas");
+		if (data.getHorasMaximasDocenciaSemanal() < 0 || data.getHorasMaximasDocenciaSemanal() > 48)
+			throw new DatosInvalidosException("Las horas maximas de docencia deben estar entre 0 y 48 por semana");
 		if (!nuevo) {
 			List<SesionHorario> activas = sesiones.findByDocenteId(entity.getId()).stream()
 					.filter(s -> s.getEstado() == EstadoSesion.PROGRAMADA).toList();

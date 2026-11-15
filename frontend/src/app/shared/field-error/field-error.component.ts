@@ -13,6 +13,7 @@ export class FieldErrorComponent {
     const errors = this.control?.errors || {};
     if (errors['required'] || errors['blank']) return 'Este campo es obligatorio.';
     if (errors['email']) return 'Escribe un correo válido, por ejemplo nombre@universidad.edu.';
+    if (errors['passwordMinimo']) return 'La contraseña debe tener al menos 8 caracteres.';
     if (errors['passwordBytes']) return 'La contraseña supera el límite de 72 bytes UTF-8.';
     if (errors['futureDate']) return 'La fecha no puede estar en el futuro.';
     if (errors['integer']) return 'Escribe un número entero.';
