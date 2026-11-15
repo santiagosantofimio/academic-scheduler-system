@@ -76,7 +76,7 @@
           "defaultConfiguration": "development",
           "options": {
             "proxyConfig": "proxy.conf.json",
-            "host": "127.0.0.1"
+            "host": "localhost"
           }
         },
         "extract-i18n": {
