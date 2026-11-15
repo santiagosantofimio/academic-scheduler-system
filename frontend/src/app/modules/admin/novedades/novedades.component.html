@@ -1,0 +1,148 @@
+<header class="page-heading">
+  <div>
+    <h1>Novedades de docentes</h1>
+    <p class="muted">
+      Registra una incapacidad o un cambio de disponibilidad y reprograma las clases que afecta.
+    </p>
+  </div>
+</header>
+<app-feedback [message]="error" kind="error" [retry]="!busy" (retryClick)="load()"></app-feedback
+><app-feedback [message]="success" kind="success"></app-feedback>
+<div *ngIf="loading" class="loading-state" role="status">
+  <span class="spinner"></span>Cargando novedades…
+</div>
+<ng-container *ngIf="!loading">
+  <form class="panel" (ngSubmit)="registrar()">
+    <div class="panel-heading">
+      <div>
+        <h2>Registrar novedad</h2>
+        <p class="muted">Deja las horas vacías si la novedad cubre todo el día.</p>
+      </div>
+    </div>
+    <div class="form-grid">
+      <div class="field">
+        <label for="novedad-docente">Docente <span class="required">*</span></label
+        ><select id="novedad-docente" name="docenteId" [(ngModel)]="form.docenteId" required>
+          <option value="">Selecciona un docente</option>
+          <option *ngFor="let d of docentes" [ngValue]="d.id">{{ d.nombre }} {{ d.apellido }}</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="novedad-tipo">Tipo <span class="required">*</span></label
+        ><select id="novedad-tipo" name="tipo" [(ngModel)]="form.tipo" required>
+          <option *ngFor="let t of tipos" [ngValue]="t.valor">{{ t.nombre }}</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="novedad-dia">Día <span class="required">*</span></label
+        ><select id="novedad-dia" name="diaSemana" [(ngModel)]="form.diaSemana" required>
+          <option *ngFor="let d of dias" [ngValue]="d.valor">{{ d.nombre }}</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="novedad-inicio">Desde</label
+        ><input id="novedad-inicio" name="horaInicio" type="time" [(ngModel)]="form.horaInicio" />
+      </div>
+      <div class="field">
+        <label for="novedad-fin">Hasta</label
+        ><input id="novedad-fin" name="horaFin" type="time" [(ngModel)]="form.horaFin" />
+      </div>
+      <div class="field field-full">
+        <label for="novedad-descripcion">Descripción</label
+        ><textarea
+          id="novedad-descripcion"
+          name="descripcion"
+          rows="2"
+          maxlength="500"
+          [(ngModel)]="form.descripcion"
+        ></textarea>
+      </div>
+    </div>
+    <p class="field-error" *ngIf="(form.horaInicio || form.horaFin) && !formularioValido">
+      Completa las dos horas, con la de inicio antes que la de fin.
+    </p>
+    <div class="heading-actions">
+      <button type="submit" class="button button-primary" [disabled]="busy || !formularioValido">
+        <app-icon name="plus"></app-icon>Registrar novedad
+      </button>
+    </div>
+  </form>
+
+  <section class="panel">
+    <div class="panel-heading">
+      <div>
+        <h2>Novedades registradas</h2>
+        <p class="muted">
+          Una novedad abierta impide programar al docente en esa franja. Ciérrala cuando termine.
+        </p>
+      </div>
+    </div>
+    <div class="affected-list" *ngIf="novedades.length; else vacio">
+      <article class="affected-item" *ngFor="let n of novedades">
+        <div class="section-toolbar">
+          <div>
+            <h3>
+              {{ n.docente }}
+              <span class="badge" [class.badge-warning]="n.estado === 'ABIERTA'" [class.badge-muted]="n.estado === 'CERRADA'">{{
+                n.estado === 'ABIERTA' ? 'Abierta' : 'Cerrada'
+              }}</span>
+            </h3>
+            <p class="muted">
+              {{ tipo(n.tipo) }} · {{ franja(n) }}<ng-container *ngIf="n.descripcion">
+                · {{ n.descripcion }}</ng-container
+              >
+            </p>
+            <p class="table-secondary">Registrada el {{ fecha(n.registradaEn) }} por {{ n.registradaPor }}</p>
+          </div>
+          <div class="row-actions" *ngIf="n.estado === 'ABIERTA' && n.idNovedad">
+            <button type="button" class="button button-secondary" [disabled]="busy" (click)="verAfectadas(n.idNovedad)">
+              <app-icon name="calendar"></app-icon>{{ abierta === n.idNovedad ? 'Ocultar clases' : 'Clases afectadas' }}
+            </button>
+            <button type="button" class="button button-secondary" [disabled]="busy" (click)="cerrar(n)">
+              <app-icon name="check"></app-icon>Cerrar novedad
+            </button>
+          </div>
+        </div>
+        <ng-container *ngIf="abierta === n.idNovedad">
+          <div *ngIf="cargandoAfectadas" class="loading-state" role="status">
+            <span class="spinner"></span>Buscando clases afectadas…
+          </div>
+          <p class="muted" *ngIf="!cargandoAfectadas && !afectadas.length">
+            Ninguna clase programada cae en esta franja.
+          </p>
+          <div class="affected-item" *ngFor="let c of afectadas">
+            <strong>{{ c.asignatura }}, grupo {{ c.grupo }}</strong>
+            <span class="muted">Hoy: {{ franja(c.sesion) }}</span>
+            <ng-container *ngIf="c.alternativas.length; else sinFranjas">
+              <span>Franjas válidas que no mueven las demás clases:</span>
+              <div class="slot-options">
+                <button
+                  type="button"
+                  class="button button-secondary"
+                  *ngFor="let f of c.alternativas"
+                  [disabled]="busy"
+                  (click)="mover(c, f)"
+                >
+                  {{ franja(f) }}
+                </button>
+              </div>
+            </ng-container>
+            <ng-template #sinFranjas
+              ><p class="field-error">
+                No hay franjas válidas para esta clase con las reglas actuales. Ajusta la
+                disponibilidad del docente o asigna otro docente al grupo.
+              </p></ng-template
+            >
+          </div>
+        </ng-container>
+      </article>
+    </div>
+    <ng-template #vacio
+      ><div class="empty-state">
+        <app-icon name="bell"></app-icon>
+        <h2>No hay novedades registradas</h2>
+        <p>Cuando un docente informe una novedad, regístrala aquí.</p>
+      </div></ng-template
+    >
+  </section>
+</ng-container>

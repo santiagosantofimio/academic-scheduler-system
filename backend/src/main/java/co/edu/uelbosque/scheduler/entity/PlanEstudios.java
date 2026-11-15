@@ -9,7 +9,7 @@ import co.edu.uelbosque.scheduler.util.IdentidadJpa;
 @Entity
 public class PlanEstudios {
 	@Id
-	@GeneratedValue(strategy = GenerationType.AUTO)
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long idPlan;
 	private String nombrePrograma;
 	@Column(nullable = false, unique = true)

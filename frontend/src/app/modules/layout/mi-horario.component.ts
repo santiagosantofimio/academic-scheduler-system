@@ -18,6 +18,8 @@ import { guardarArchivo } from '../../shared/descarga';
 })
 export class MiHorarioComponent implements OnInit {
   data: DatosPlaneacion | null = null;
+  version: string | null = null;
+  publicadaEn: string | null = null;
   loading = true;
   error = '';
   listView = false;
@@ -37,7 +39,11 @@ export class MiHorarioComponent implements OnInit {
       .horarioDocente(usuario)
       .pipe(finalize(() => (this.loading = false)))
       .subscribe({
-        next: (data) => (this.data = data),
+        next: (data) => {
+          this.data = data;
+          this.version = data.versionPublicada || null;
+          this.publicadaEn = data.publicadaEn || null;
+        },
         error: (error) => (this.error = mensajeError(error)),
       });
   }
@@ -55,6 +61,11 @@ export class MiHorarioComponent implements OnInit {
     const g = this.data?.grupos.find((x) => x.idGrupo === id);
     const a = this.data?.asignaturas.find((x) => x.idAsginatura === g?.asignaturaId);
     return `${a?.nombre || 'Asignatura'} · Grupo ${g?.numeroGrupo || id}`;
+  }
+  get fechaPublicacion(): string {
+    return this.publicadaEn
+      ? new Date(this.publicadaEn).toLocaleString('es-CO', { dateStyle: 'long', timeStyle: 'short' })
+      : '';
   }
   nombreDia(dia: DiaSemana): string {
     return DIAS.find((d) => d.valor === dia)?.nombre || dia;

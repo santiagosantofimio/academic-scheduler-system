@@ -35,6 +35,38 @@ describe('Servicios academicos y serializacion', () => {
     req.flush('Asignatura actualizado');
     expect(result).toBe('Asignatura actualizado');
   });
+  it('publica y guarda borradores con el nombre de la version', () => {
+    api.publicar('2027-1').subscribe();
+    const publicar = http.expectOne('/api/versiones/publicar');
+    expect(publicar.request.method).toBe('POST');
+    expect(publicar.request.body).toEqual({ nombre: '2027-1' });
+    publicar.flush({});
+    api.guardarBorrador('Propuesta A').subscribe();
+    const borrador = http.expectOne('/api/versiones/borradores');
+    expect(borrador.request.body).toEqual({ nombre: 'Propuesta A' });
+    borrador.flush({});
+    api.cargarVersion(4).subscribe();
+    expect(http.expectOne('/api/versiones/4/cargar').request.method).toBe('POST');
+  });
+  it('registra una novedad y consulta sus clases afectadas', () => {
+    const novedad = {
+      docenteId: 3,
+      tipo: 'INCAPACIDAD' as const,
+      diaSemana: 'MONDAY' as const,
+      horaInicio: null,
+      horaFin: null,
+      descripcion: null,
+    };
+    api.registrarNovedad(novedad).subscribe();
+    const req = http.expectOne('/api/novedades');
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body).toEqual(novedad);
+    req.flush({});
+    api.clasesAfectadas(9).subscribe();
+    http.expectOne('/api/novedades/9/afectadas').flush([]);
+    api.cerrarNovedad(9).subscribe();
+    expect(http.expectOne('/api/novedades/9/cerrar').request.method).toBe('POST');
+  });
   it('consulta formacion por el parametro valor del controlador', () => {
     api.formacionDocente(8).subscribe();
     const req = http.expectOne('/api/formaciones/por-docente?valor=8');
@@ -92,7 +124,7 @@ describe('Servicios academicos y serializacion', () => {
     let rejected = false;
     api.planeacion().subscribe({ error: () => (rejected = true) });
     const requests = http.match(() => true);
-    expect(requests.length).toBe(6);
+    expect(requests.length).toBe(7);
     requests[0].flush({}, { status: 500, statusText: 'Error' });
     expect(rejected).toBeTrue();
   });

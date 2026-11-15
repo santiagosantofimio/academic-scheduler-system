@@ -1,34 +1,38 @@
 services:
-  postgres:
-    image: postgres:17-alpine
-    container_name: scheduler-postgres
+  mysql:
+    image: mysql:8.4
+    container_name: scheduler-mysql
     restart: unless-stopped
     environment:
-      POSTGRES_DB: scheduler
-      POSTGRES_USER: scheduler
-      POSTGRES_PASSWORD: scheduler
+      MYSQL_DATABASE: scheduler
+      MYSQL_USER: scheduler
+      MYSQL_PASSWORD: scheduler
+      MYSQL_ROOT_PASSWORD: root
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_0900_ai_ci
     ports:
-      - "5432:5432"
+      - "${SCHEDULER_DB_PUERTO:-3306}:3306"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - mysql_data:/var/lib/mysql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U scheduler -d scheduler"]
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u scheduler -pscheduler --silent"]
       interval: 5s
       timeout: 5s
-      retries: 10
+      retries: 20
 
-  pgadmin:
-    image: dpage/pgadmin4:latest
-    container_name: scheduler-pgadmin
+  phpmyadmin:
+    image: phpmyadmin:5.2
+    container_name: scheduler-phpmyadmin
     restart: unless-stopped
     environment:
-      PGADMIN_DEFAULT_EMAIL: admin@scheduler.local
-      PGADMIN_DEFAULT_PASSWORD: admin
+      PMA_HOST: mysql
+      PMA_PORT: 3306
     ports:
-      - "5050:80"
+      - "8081:80"
     depends_on:
-      postgres:
+      mysql:
         condition: service_healthy
 
 volumes:
-  postgres_data:
+  mysql_data:

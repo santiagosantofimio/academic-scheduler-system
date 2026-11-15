@@ -4,6 +4,9 @@ import java.time.*;
 import java.util.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import java.time.format.TextStyle;
+import co.edu.uelbosque.scheduler.dto.ConflictoDTO;
+import co.edu.uelbosque.scheduler.dto.FranjaDTO;
 import co.edu.uelbosque.scheduler.dto.SesionHorarioDTO;
 import co.edu.uelbosque.scheduler.exception.*;
 import co.edu.uelbosque.scheduler.util.DtoMapper;
@@ -21,10 +24,13 @@ public class SesionHorarioService extends AbstractCrudService<SesionHorario, Ses
 	private final ConfiguracionHorariosRepository configuraciones;
 	private final RequisitoAsignaturaService requisitos;
 	private final DisponibilidadDocenteRepository disponibilidades;
+	private final NovedadDocenteRepository novedades;
+	private final AuditoriaService auditoria;
 
 	public SesionHorarioService(SesionHorarioRepository rep, GrupoRepository grupos, DocenteRepository docentes,
 			ConfiguracionHorariosRepository configuraciones, RequisitoAsignaturaService requisitos,
-			DisponibilidadDocenteRepository disponibilidades) {
+			DisponibilidadDocenteRepository disponibilidades, NovedadDocenteRepository novedades,
+			AuditoriaService auditoria) {
 		super(rep, "SesionHorario", configuraciones);
 		this.rep = rep;
 		this.grupos = grupos;
@@ -32,6 +38,8 @@ public class SesionHorarioService extends AbstractCrudService<SesionHorario, Ses
 		this.configuraciones = configuraciones;
 		this.requisitos = requisitos;
 		this.disponibilidades = disponibilidades;
+		this.novedades = novedades;
+		this.auditoria = auditoria;
 	}
 
 	@Override
@@ -72,6 +80,9 @@ public class SesionHorarioService extends AbstractCrudService<SesionHorario, Ses
 		}
 		DtoMapper.copy(data, entity);
 		entity.setGrupo(grupo);
+		auditoria.registrar(nuevo ? "CREAR_SESION" : "AJUSTAR_SESION",
+				describir(grupo, data.getDiaSemana(), data.getHoraInicio(), data.getHoraFin())
+						+ (data.getEstado() == EstadoSesion.CANCELADA ? " (cancelada)" : ""));
 	}
 
 	@Transactional
@@ -89,7 +100,71 @@ public class SesionHorarioService extends AbstractCrudService<SesionHorario, Ses
 	@Transactional
 	public int deleteById(Long id) {
 		configuraciones.bloquearConfiguraciones();
+		SesionHorario sesion = requerido(id);
+		auditoria.registrar("ELIMINAR_SESION",
+				describir(sesion.getGrupo(), sesion.getDiaSemana(), sesion.getHoraInicio(), sesion.getHoraFin()));
 		return super.deleteById(id);
+	}
+
+	public List<SesionHorario> programadas() {
+		return rep.findByEstado(EstadoSesion.PROGRAMADA).orElseGet(List::of);
+	}
+
+	public List<ConflictoDTO> conflictos() {
+		ConfiguracionHorarios config = ConfiguracionHorariosService.unica(configuraciones.findAll());
+		List<ConflictoDTO> encontrados = new ArrayList<>();
+		for (SesionHorario sesion : programadas()) {
+			Grupo grupo = sesion.getGrupo();
+			try {
+				Docente docente = docenteParaProgramar(grupo, false);
+				validarCandidata(sesion, config, grupo, docente, activasGrupo(grupo.getIdGrupo()),
+						activasDocente(docente.getId()));
+			} catch (RuntimeException error) {
+				encontrados.add(new ConflictoDTO(sesion.getIdSesion(), grupo.getIdGrupo(),
+						describir(grupo, sesion.getDiaSemana(), sesion.getHoraInicio(), sesion.getHoraFin()),
+						error.getMessage()));
+			}
+		}
+		return encontrados;
+	}
+
+	public List<FranjaDTO> alternativas(SesionHorario sesion, int maximo) {
+		ConfiguracionHorarios config = ConfiguracionHorariosService.unica(configuraciones.findAll());
+		Grupo grupo = sesion.getGrupo();
+		Docente docente = docenteParaProgramar(grupo, false);
+		List<SesionHorario> delGrupo = activasGrupo(grupo.getIdGrupo());
+		List<SesionHorario> delDocente = activasDocente(docente.getId());
+		List<FranjaDTO> franjas = new ArrayList<>();
+		int minutos = config.getDuracionSesionMinutos();
+		for (int d = 1; d <= 6 && franjas.size() < maximo; d++) {
+			DayOfWeek dia = DayOfWeek.of(d);
+			int desde = ReglasHorario.inicio(config, dia).toSecondOfDay() / 60;
+			int hasta = ReglasHorario.fin(config, dia).toSecondOfDay() / 60;
+			for (int m = desde; m + minutos <= hasta && franjas.size() < maximo; m += 60) {
+				LocalTime inicio = LocalTime.MIN.plusMinutes(m);
+				if (dia == sesion.getDiaSemana() && inicio.equals(sesion.getHoraInicio()))
+					continue;
+				SesionHorario candidata = new SesionHorario(dia, inicio, inicio.plusMinutes(minutos),
+						EstadoSesion.PROGRAMADA);
+				candidata.setIdSesion(sesion.getIdSesion());
+				candidata.setGrupo(grupo);
+				try {
+					validarCandidata(candidata, config, grupo, docente, delGrupo, delDocente);
+					franjas.add(new FranjaDTO(dia, candidata.getHoraInicio(), candidata.getHoraFin()));
+				} catch (RuntimeException descartada) {
+					continue;
+				}
+			}
+		}
+		return franjas;
+	}
+
+	public static String describir(Grupo grupo, DayOfWeek dia, LocalTime inicio, LocalTime fin) {
+		String nombreDia = dia == null ? "" : dia.getDisplayName(TextStyle.FULL, Locale.of("es"));
+		String clase = grupo == null ? "Grupo eliminado"
+				: grupo.getAsignatura().getCodigo() + " " + grupo.getAsignatura().getNombre() + ", grupo "
+						+ grupo.getNumeroGrupo();
+		return clase + ": " + nombreDia + " " + inicio + "-" + fin;
 	}
 
 	public List<SesionHorarioDTO> findByGrupoId(Long id) {
@@ -117,6 +192,7 @@ public class SesionHorarioService extends AbstractCrudService<SesionHorario, Ses
 		List<SesionHorario> actuales = activasDocente(id);
 		return docente.isEstado() && ReglasHorario.franja(config, dia, inicio, fin)
 				&& ReglasHorario.dentroDeDisponibilidad(disponibilidades.findByDocenteId(id), dia, inicio, fin)
+				&& novedadesAbiertas(id).stream().noneMatch(n -> n.bloquea(dia, inicio, fin))
 				&& actuales.stream().noneMatch(s -> cruce(s, dia, inicio, fin)) && segundos(actuales) + Duration
 						.between(inicio, fin).getSeconds() <= docente.getHorasMaximasDocenciaSemanal() * 3600L;
 	}
@@ -165,6 +241,7 @@ public class SesionHorarioService extends AbstractCrudService<SesionHorario, Ses
 		if (faltantes == 0)
 			return ordenadas(existentes);
 		List<DisponibilidadDocente> ventanas = disponibilidades.findByDocenteId(docente.getId());
+		List<NovedadDocente> abiertas = novedadesAbiertas(docente.getId());
 		long segundosNuevos = (long) faltantes * config.getDuracionSesionMinutos() * 60;
 		if (segundos(delDocente) + segundosNuevos > docente.getHorasMaximasDocenciaSemanal() * 3600L)
 			throw new DisponibilidadInvalidaException("La generacion excederia la carga semanal del docente");
@@ -176,7 +253,7 @@ public class SesionHorarioService extends AbstractCrudService<SesionHorario, Ses
 			ocupados[d - 1] = (int) existentes.stream().filter(s -> s.getDiaSemana() == dia).count();
 			boolean bloqueado = config.isEvitarDiasConsecutivos()
 					&& existentes.stream().anyMatch(s -> ReglasHorario.consecutivos(s.getDiaSemana(), dia));
-			opciones.add(bloqueado ? List.of() : espaciosLibres(config, grupo, dia, delDocente, ventanas));
+			opciones.add(bloqueado ? List.of() : espaciosLibres(config, grupo, dia, delDocente, ventanas, abiertas));
 		}
 		List<SesionHorario> nuevas = distribuir(faltantes, config.isEvitarDiasConsecutivos(), ocupados, opciones);
 		if (nuevas.isEmpty())
@@ -184,6 +261,8 @@ public class SesionHorarioService extends AbstractCrudService<SesionHorario, Ses
 					"No existe espacio suficiente para completar el grupo con las restricciones actuales; no se guardaron sesiones parciales");
 		List<SesionHorario> completas = new ArrayList<>(existentes);
 		completas.addAll(rep.saveAllAndFlush(nuevas));
+		auditoria.registrar("GENERAR_GRUPO", grupo.getAsignatura().getCodigo() + " grupo " + grupo.getNumeroGrupo()
+				+ ": " + nuevas.size() + " sesiones generadas");
 		return ordenadas(completas);
 	}
 
@@ -199,6 +278,9 @@ public class SesionHorarioService extends AbstractCrudService<SesionHorario, Ses
 		if (!ReglasHorario.dentroDeDisponibilidad(disponibilidades.findByDocenteId(docente.getId()),
 				candidata.getDiaSemana(), candidata.getHoraInicio(), candidata.getHoraFin()))
 			throw new DisponibilidadInvalidaException("El docente no esta disponible en esa franja");
+		if (novedadesAbiertas(docente.getId()).stream().anyMatch(
+				n -> n.bloquea(candidata.getDiaSemana(), candidata.getHoraInicio(), candidata.getHoraFin())))
+			throw new DisponibilidadInvalidaException("El docente tiene una novedad abierta en esa franja");
 		List<SesionHorario> otrasGrupo = sinActual(delGrupo, candidata);
 		List<SesionHorario> otrasDocente = sinActual(delDocente, candidata);
 		verificarCruceHorario(otrasGrupo.stream()
@@ -232,6 +314,10 @@ public class SesionHorarioService extends AbstractCrudService<SesionHorario, Ses
 		verificarAsignacionAcademica(docente.isEstado());
 		requisitos.validarDocente(grupo.getAsignatura().getIdAsginatura(), id);
 		return docente;
+	}
+
+	private List<NovedadDocente> novedadesAbiertas(Long docenteId) {
+		return novedades.buscarPorDocente(docenteId, EstadoNovedad.ABIERTA);
 	}
 
 	private List<SesionHorario> activasGrupo(Long id) {
@@ -280,7 +366,7 @@ public class SesionHorarioService extends AbstractCrudService<SesionHorario, Ses
 	}
 
 	private static List<SesionHorario> espaciosLibres(ConfiguracionHorarios config, Grupo grupo, DayOfWeek dia,
-			List<SesionHorario> existentes, List<DisponibilidadDocente> ventanas) {
+			List<SesionHorario> existentes, List<DisponibilidadDocente> ventanas, List<NovedadDocente> abiertas) {
 		LocalTime comienzo = ReglasHorario.inicio(config, dia), termino = ReglasHorario.fin(config, dia);
 		List<Franja> ocupadas = new ArrayList<>();
 		for (SesionHorario sesion : existentes)
@@ -290,6 +376,10 @@ public class SesionHorarioService extends AbstractCrudService<SesionHorario, Ses
 			ocupadas.add(new Franja(config.getHoraInicioDescanso(), config.getHoraFinDescanso()));
 		if (!ventanas.isEmpty())
 			ocupadas.addAll(fueraDeDisponibilidad(ventanas, dia, comienzo, termino));
+		for (NovedadDocente novedad : abiertas)
+			if (novedad.getDiaSemana() == dia)
+				ocupadas.add(novedad.getHoraInicio() == null ? new Franja(comienzo, termino)
+						: new Franja(novedad.getHoraInicio(), novedad.getHoraFin()));
 		ocupadas.sort(Comparator.comparing(Franja::inicio));
 		List<SesionHorario> libres = new ArrayList<>();
 		LocalTime cursor = comienzo;

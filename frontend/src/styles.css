@@ -2218,3 +2218,22 @@ a.table-name:hover {
     animation: scrim-in 160ms linear;
   }
 }
+.mejor-valor {
+  color: var(--accent-text);
+  font-weight: 600;
+}
+.affected-list {
+  display: grid;
+  gap: 12px;
+}
+.affected-item {
+  display: grid;
+  gap: 8px;
+  padding: 12px 0;
+  border-top: 1px solid var(--border);
+}
+.slot-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}

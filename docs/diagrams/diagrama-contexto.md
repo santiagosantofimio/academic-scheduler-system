@@ -8,8 +8,8 @@ Ubica el sistema dentro del sistema de información completo (personas, infraest
 
 | Actor | Rol en el sistema | Interacción |
 |---|---|---|
-| Coordinador de Horarios | `Coordinador` | Gestiona docentes, asignaturas, grupos y parámetros; arma, valida y publica el horario. |
-| Docente | `Consulta` | Consulta y exporta su propio horario. No crea, modifica ni elimina información. |
+| Coordinador de Horarios | `ADMINISTRADOR` | Gestiona docentes, asignaturas, grupos y parámetros; arma, valida y publica el horario, y registra las novedades de los docentes. |
+| Docente | `DOCENTE` | Consulta y exporta su parte del horario publicado. No crea, modifica ni elimina información. |
 
 ## Fuentes de información externas
 
@@ -31,8 +31,8 @@ flowchart TB
         REG["Reglamento Estudiantil<br/>(restricciones normativas)"]
     end
 
-    COORD(["Coordinador de Horarios<br/>(rol: Coordinador)"])
-    CONS(["Docente<br/>(rol: Consulta)"])
+    COORD(["Coordinador de Horarios<br/>(rol: ADMINISTRADOR)"])
+    CONS(["Docente<br/>(rol: DOCENTE)"])
 
     SISTEMA[["Sistema de Programación<br/>de Horarios de Clases"]]
 

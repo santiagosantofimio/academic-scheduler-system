@@ -14,6 +14,8 @@ class HorarioDocenteServiceTest {
     private UsuarioRepository usuarios;
     private ExportacionHorarioService exportacion;
     private HorarioDocenteService servicio;
+    private VersionHorarioRepository versiones;
+    private VersionHorario publicada;
 
     @BeforeEach
     void preparar() {
@@ -36,18 +38,35 @@ class HorarioDocenteServiceTest {
         for (var s : List.of(viernes, lunes, cancelada)) s.setGrupo(grupo);
         when(sesiones.findByDocenteId(20L)).thenReturn(List.of(viernes, cancelada, lunes));
         when(configuraciones.findAll()).thenReturn(List.of());
-        servicio = new HorarioDocenteService(usuarios, grupos, sesiones, configuraciones, exportacion);
+        Docente otroDocente = new Docente(); otroDocente.setId(21L);
+        Grupo ajeno = new Grupo(32L, "03", EstadoGrupo.ACTIVO); ajeno.setAsignatura(asignatura); ajeno.setDocente(otroDocente);
+        publicada = new VersionHorario("2026-2", EstadoVersion.PUBLICADA, LocalDateTime.of(2026,11,14,9,0), "admin@example.test");
+        publicada.agregar(new VersionSesion(grupo, DayOfWeek.FRIDAY, LocalTime.of(8,0), LocalTime.of(10,0)));
+        publicada.agregar(new VersionSesion(grupo, DayOfWeek.MONDAY, LocalTime.of(8,0), LocalTime.of(10,0)));
+        publicada.agregar(new VersionSesion(ajeno, DayOfWeek.TUESDAY, LocalTime.of(8,0), LocalTime.of(10,0)));
+        versiones = mock(VersionHorarioRepository.class);
+        when(versiones.findFirstByEstadoOrderByIdVersionDesc(EstadoVersion.PUBLICADA)).thenReturn(Optional.of(publicada));
+        servicio = new HorarioDocenteService(usuarios, grupos, sesiones, configuraciones, exportacion, versiones);
     }
-    @Test void devuelveSoloSesionesProgramadasOrdenadasYAsignaturasSinRepetir() {
+    @Test void devuelveSoloSusSesionesPublicadasOrdenadasYAsignaturasSinRepetir() {
         var horario = servicio.consultar("docente@example.test");
         assertEquals(List.of(DayOfWeek.MONDAY, DayOfWeek.FRIDAY), horario.sesiones().stream().map(s -> s.getDiaSemana()).toList());
+        assertEquals("2026-2", horario.versionPublicada());
         assertEquals(2, horario.grupos().size());
         assertEquals(1, horario.asignaturas().size());
         assertNull(horario.configuracion());
     }
-    @Test void exportaSoloConElIdDelDocenteAutenticado() {
+    @Test void sinVersionPublicadaElDocenteNoVeSesionesDelHorarioDeTrabajo() {
+        when(versiones.findFirstByEstadoOrderByIdVersionDesc(EstadoVersion.PUBLICADA)).thenReturn(Optional.empty());
+        var horario = servicio.consultar("docente@example.test");
+        assertTrue(horario.sesiones().isEmpty());
+        assertNull(horario.versionPublicada());
+        assertEquals(2, horario.grupos().size());
+    }
+    @Test void exportaSoloLasSesionesPublicadasDelDocenteAutenticado() {
         servicio.pdf("docente@example.test");
-        verify(exportacion).pdf(null, 20L);
+        verify(exportacion).pdf(argThat((List<SesionHorario> lista) -> lista.size() == 2
+                && lista.stream().allMatch(s -> s.getGrupo().getDocente().getId() == 20L)));
     }
     @Test void unaCuentaQueNoEsDocenteNoTieneHorario() {
         assertThrows(RecursoNoEncontradoException.class, () -> servicio.consultar("admin@example.test"));

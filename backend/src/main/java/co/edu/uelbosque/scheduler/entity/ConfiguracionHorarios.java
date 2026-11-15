@@ -11,7 +11,7 @@ public class ConfiguracionHorarios {
 	@Column(nullable = false, unique = true, updatable = false, length = 20)
 	private String claveInstitucional = "INSTITUCIONAL";
 	@Id
-	@GeneratedValue(strategy = GenerationType.AUTO)
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long idConfiguracion;
 	private LocalTime horaInicioSemana;
 	private LocalTime horaFinSemana;

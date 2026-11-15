@@ -9,7 +9,7 @@ import co.edu.uelbosque.scheduler.util.IdentidadJpa;
 @Entity
 public class SesionHorario {
 	@Id
-	@GeneratedValue(strategy = GenerationType.AUTO)
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long idSesion;
 	@Enumerated(EnumType.STRING)
 	private DayOfWeek diaSemana;

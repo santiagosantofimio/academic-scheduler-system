@@ -4,16 +4,16 @@ Sistema de programación de horarios de clases, desarrollado como Proyecto Núcl
 
 ## Stack
 
-- **Backend**: Java 21, Spring Boot 4.1.1, Maven, PostgreSQL (JPA/Hibernate), Flyway, Spring Security, springdoc-openapi, OpenPDF.
+- **Backend**: Java 21, Spring Boot 4.1.1, Maven, MySQL (JPA/Hibernate), Flyway, Spring Security, springdoc-openapi, OpenPDF.
 - **Frontend**: Angular 20 con NgModules.
-- **Base de datos**: PostgreSQL 17 (Docker).
+- **Base de datos**: MySQL 8.4 (Docker).
 
 ## Estructura
 
 ```
 backend/     API REST: controller, service, repository, entity, dto, security, util
 frontend/    SPA Angular
-docker-compose.yml   PostgreSQL + pgAdmin para desarrollo local
+docker-compose.yml   MySQL + phpMyAdmin para desarrollo local
 docs/        Informe de ingeniería y diagramas
 ```
 
@@ -31,6 +31,13 @@ Detalle técnico en [backend/IMPLEMENTACION.md](backend/IMPLEMENTACION.md) y [fr
    ```bash
    docker compose up -d
    ```
+   MySQL queda en el puerto 3306 con base, usuario y contraseña `scheduler`. Si ese puerto ya lo usa un MySQL instalado en el equipo, `docker compose up -d` falla. En ese caso define otro puerto en la terminal antes de levantar la base y el backend; los dos leen la misma variable:
+   ```bash
+   export SCHEDULER_DB_PUERTO=3307
+   ```
+   En PowerShell: `$env:SCHEDULER_DB_PUERTO='3307'`.
+
+   También puedes usar ese MySQL en lugar de Docker: crea la base `scheduler` y, si el usuario no es `scheduler` con contraseña `scheduler`, define `SCHEDULER_DB_URL`, `SCHEDULER_DB_USUARIO` y `SCHEDULER_DB_CONTRASENIA`. Se necesita MySQL 8.0.19 o superior; con MariaDB, la que trae XAMPP, los datos de demostración no cargan.
 2. Backend (puerto 8080). Las variables crean el primer administrador la primera vez que arranca sin ninguno; elige tu propia contraseña:
    ```bash
    cd backend
@@ -57,7 +64,9 @@ Detalle técnico en [backend/IMPLEMENTACION.md](backend/IMPLEMENTACION.md) y [fr
 
 Los docentes de demostración no tienen contraseña conocida. Para probar el rol de consulta, edita uno desde Docentes con la cuenta de administrador y asígnale una.
 
-pgAdmin disponible en `http://localhost:5050` (usuario `admin@scheduler.local`, contraseña `admin`).
+phpMyAdmin disponible en `http://localhost:8081` (usuario `scheduler`, contraseña `scheduler`). MySQL Workbench también se conecta a `localhost:3306` con esos datos.
+
+Si antes usabas la versión con PostgreSQL, ejecuta una vez `docker compose up -d --remove-orphans` para quitar los contenedores de PostgreSQL y pgAdmin.
 
 Si tu base local viene de una versión anterior del esquema y Flyway falla al validar, recréala. Este comando **borra los datos locales**:
 
@@ -73,7 +82,7 @@ cd backend && ./mvnw test
 cd frontend && npm test -- --watch=false
 ```
 
-Las pruebas de integración del backend levantan PostgreSQL con Testcontainers y se omiten si Docker no está activo. Las del frontend usan ChromeHeadless y requieren Chrome o Chromium (`CHROME_BIN`).
+Las pruebas de integración del backend levantan MySQL con Testcontainers y se omiten si Docker no está activo. Las del frontend usan ChromeHeadless y requieren Chrome o Chromium (`CHROME_BIN`).
 
 ## Alcance del PMV (12 semanas)
 

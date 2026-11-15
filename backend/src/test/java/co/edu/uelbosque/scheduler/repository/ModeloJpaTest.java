@@ -22,7 +22,7 @@ class ModeloJpaTest {
         };
         var registro = new StandardServiceRegistryBuilder()
                 .applySetting("hibernate.boot.allow_jdbc_metadata_access", false)
-                .applySetting("hibernate.dialect", "org.hibernate.dialect.PostgreSQLDialect")
+                .applySetting("hibernate.dialect", "org.hibernate.dialect.MySQLDialect")
                 .applySetting("hibernate.hbm2ddl.auto", "none")
                 .addService(ConnectionProvider.class, prohibido).build();
         try {

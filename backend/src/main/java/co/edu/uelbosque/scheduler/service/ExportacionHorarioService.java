@@ -38,15 +38,31 @@ public class ExportacionHorarioService {
 	}
 
 	public byte[] csv(Long grupo, Long docente) {
+		return csvDe(filas(grupo, docente));
+	}
+
+	public byte[] pdf(Long grupo, Long docente) {
+		return pdfDe(filas(grupo, docente));
+	}
+
+	public byte[] csv(List<SesionHorario> lista) {
+		return csvDe(ordenar(lista.stream()));
+	}
+
+	public byte[] pdf(List<SesionHorario> lista) {
+		return pdfDe(ordenar(lista.stream()));
+	}
+
+	private byte[] csvDe(List<List<String>> filas) {
 		StringBuilder contenido = new StringBuilder(MARCA_UTF8);
 		contenido.append(String.join(SEPARADOR, COLUMNAS)).append("\r\n");
-		for (List<String> fila : filas(grupo, docente))
+		for (List<String> fila : filas)
 			contenido.append(fila.stream().map(ExportacionHorarioService::celdaCsv)
 					.collect(Collectors.joining(SEPARADOR))).append("\r\n");
 		return contenido.toString().getBytes(StandardCharsets.UTF_8);
 	}
 
-	public byte[] pdf(Long grupo, Long docente) {
+	private byte[] pdfDe(List<List<String>> filas) {
 		ByteArrayOutputStream salida = new ByteArrayOutputStream();
 		Document documento = new Document(PageSize.A4.rotate(), 36, 36, 36, 36);
 		PdfWriter.getInstance(documento, salida);
@@ -60,17 +76,21 @@ public class ExportacionHorarioService {
 		Font encabezado = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 9);
 		Font cuerpo = FontFactory.getFont(FontFactory.HELVETICA, 9);
 		COLUMNAS.forEach(columna -> tabla.addCell(celdaPdf(columna, encabezado)));
-		filas(grupo, docente).forEach(fila -> fila.forEach(valor -> tabla.addCell(celdaPdf(valor, cuerpo))));
+		filas.forEach(fila -> fila.forEach(valor -> tabla.addCell(celdaPdf(valor, cuerpo))));
 		documento.add(tabla);
 		documento.close();
 		return salida.toByteArray();
 	}
 
 	private List<List<String>> filas(Long grupo, Long docente) {
-		return sesiones.findByEstado(EstadoSesion.PROGRAMADA).orElseGet(List::of).stream()
+		return ordenar(sesiones.findByEstado(EstadoSesion.PROGRAMADA).orElseGet(List::of).stream()
 				.filter(s -> grupo == null || grupo.equals(s.getGrupo().getIdGrupo()))
 				.filter(s -> docente == null || (s.getGrupo().getDocente() != null
-						&& docente.equals(s.getGrupo().getDocente().getId())))
+						&& docente.equals(s.getGrupo().getDocente().getId()))));
+	}
+
+	private static List<List<String>> ordenar(java.util.stream.Stream<SesionHorario> flujo) {
+		return flujo
 				.sorted(Comparator.comparing(SesionHorario::getDiaSemana).thenComparing(SesionHorario::getHoraInicio))
 				.map(ExportacionHorarioService::fila).toList();
 	}

@@ -22,7 +22,7 @@ public class Grupo {
 	}
 
 	@Id
-	@GeneratedValue(strategy = GenerationType.AUTO)
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private long idGrupo;
 	@Column(name = "numero_grupo", nullable = false)
 	private String numeroGrupo;
