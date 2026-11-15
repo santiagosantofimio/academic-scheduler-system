@@ -49,8 +49,9 @@ public class ConfiguracionHorariosService extends AbstractCrudService<Configurac
 		verificarHorario(data.getHoraInicioSabado(), data.getHoraFinSabado());
 		if (data.getHoraInicioDescanso() != null || data.getHoraFinDescanso() != null)
 			verificarHorario(data.getHoraInicioDescanso(), data.getHoraFinDescanso());
-		if (data.getDuracionSesionMinutos() <= 0)
-			throw new HorarioInvalidoException("La duracion debe ser positiva");
+		if (data.getDuracionSesionMinutos() <= 0 || data.getDuracionSesionMinutos() > Duration
+				.between(data.getHoraInicioSemana(), data.getHoraFinSemana()).toMinutes())
+			throw new HorarioInvalidoException("La duracion debe ser positiva y caber en la jornada entre semana");
 		verificarSesionesSemanales(data.getMaxSesionesSemanales());
 		if (data.getCupoMinimoGrupo() <= 0 || data.getCupoMaximoGrupo() < data.getCupoMinimoGrupo())
 			throw new DatosInvalidosException("El cupo minimo debe ser positivo y no superar el maximo");

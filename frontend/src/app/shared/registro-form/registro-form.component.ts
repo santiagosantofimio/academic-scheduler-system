@@ -16,6 +16,7 @@ import {
   ordenFechas,
   ordenHoras,
   passwordBytes,
+  passwordMinimo,
   sinBlancos,
 } from '../form-validators';
 export interface Opcion {
@@ -74,7 +75,7 @@ export class RegistroFormComponent implements OnChanges, OnDestroy {
       if (field.type === 'number') rules.push(entero);
       if (field.type === 'date') rules.push(noFutura);
       if (field.type === 'password')
-        rules.push(passwordBytes, (control) =>
+        rules.push(passwordBytes, passwordMinimo, (control) =>
           control.value && !String(control.value).trim() ? { blank: true } : null,
         );
       if (field.min !== undefined) rules.push(Validators.min(field.min));

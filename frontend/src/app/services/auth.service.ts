@@ -56,6 +56,9 @@ export class AuthService {
     this.usuarioSubject.next(usuario);
     return usuario;
   }
+  renovarCsrf(csrf: TokenCsrf): void {
+    if (this.autorizacion) this.csrf = csrf;
+  }
   cerrar(): void {
     this.autorizacion = null;
     this.csrf = null;

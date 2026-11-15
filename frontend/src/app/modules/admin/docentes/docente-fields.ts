@@ -14,7 +14,7 @@ export function camposDocente(editando: boolean): Campo[] {
       required: true,
       options: opciones(VINCULACIONES),
     },
-    campoNumero('horasMaximasDocenciaSemanal', 'Horas máximas de docencia / semana', 0),
+    { ...campoNumero('horasMaximasDocenciaSemanal', 'Horas máximas de docencia / semana', 0), max: 48 },
     campoTexto('escalafon', 'Escalafón'),
     campoTexto('especialidad', 'Especialidad'),
     {
@@ -40,7 +40,7 @@ export const CAMPOS_FORMACION: Campo[] = [
     options: opciones(NIVELES),
   },
   {
-    ...campoNumero('anioGraduacion', 'Año de graduación'),
+    ...campoNumero('anioGraduacion', 'Año de graduación', 1950),
     max: Number(
       new Intl.DateTimeFormat('en', { timeZone: 'America/Bogota', year: 'numeric' }).format(
         new Date(),

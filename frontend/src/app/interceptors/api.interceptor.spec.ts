@@ -18,10 +18,14 @@ describe('Cabeceras y limites del interceptor', () => {
     authorizationHeader: 'Basic prueba',
     csrfToken: { headerName: 'X-CSRF-TOKEN', token: 'csrf-prueba' },
     cerrar: jasmine.createSpy('cerrar'),
+    renovarCsrf(csrf: { headerName: string; token: string }) {
+      this.csrfToken = csrf;
+    },
   };
   const router = { navigate: jasmine.createSpy('navigate').and.resolveTo(true) };
   beforeEach(() => {
     auth.cerrar.calls.reset();
+    auth.csrfToken = { headerName: 'X-CSRF-TOKEN', token: 'csrf-prueba' };
     router.navigate.calls.reset();
     TestBed.configureTestingModule({
       providers: [
@@ -62,5 +66,26 @@ describe('Cabeceras y limites del interceptor', () => {
     expect(router.navigate).toHaveBeenCalledWith(['/ingresar'], {
       queryParams: { motivo: 'sesion' },
     });
+  });
+  it('si el token CSRF vencio pide uno nuevo y reintenta la escritura una vez', () => {
+    let ok = false;
+    client.post('/api/grupos', {}).subscribe(() => (ok = true));
+    http.expectOne('/api/grupos').flush({}, { status: 403, statusText: 'Forbidden' });
+    const csrf = http.expectOne('/api/csrf');
+    expect(csrf.request.method).toBe('GET');
+    expect(csrf.request.headers.get('Authorization')).toBe('Basic prueba');
+    csrf.flush({ headerName: 'X-CSRF-TOKEN', token: 'csrf-nuevo' });
+    const retry = http.expectOne('/api/grupos');
+    expect(retry.request.headers.get('X-CSRF-TOKEN')).toBe('csrf-nuevo');
+    retry.flush({});
+    expect(ok).toBeTrue();
+  });
+  it('un 403 repetido se entrega al componente sin reintentar de nuevo', () => {
+    let estado = 0;
+    client.post('/api/grupos', {}).subscribe({ error: (e) => (estado = e.status) });
+    http.expectOne('/api/grupos').flush({}, { status: 403, statusText: 'Forbidden' });
+    http.expectOne('/api/csrf').flush({ headerName: 'X-CSRF-TOKEN', token: 'otro' });
+    http.expectOne('/api/grupos').flush({}, { status: 403, statusText: 'Forbidden' });
+    expect(estado).toBe(403);
   });
 });

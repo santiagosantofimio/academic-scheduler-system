@@ -38,9 +38,11 @@ public class DatosUsuario {
 		if (nuevo && (password == null || password.isBlank()))
 			throw new DatosInvalidosException("La contrasenia es obligatoria al crear un usuario");
 		if (password != null) {
-			if (password.isBlank() || password.getBytes(StandardCharsets.UTF_8).length > 72)
+			if (password.isBlank() || password.codePointCount(0, password.length()) < 8)
+				throw new DatosInvalidosException("La contrasenia debe tener al menos 8 caracteres");
+			if (password.getBytes(StandardCharsets.UTF_8).length > 72)
 				throw new DatosInvalidosException(
-						"La contrasenia debe contener entre 1 y 72 bytes UTF-8, limite del codificador BCrypt");
+						"La contrasenia supera los 72 bytes UTF-8, limite del codificador BCrypt");
 			entity.setContrasenia(encoder.encode(password));
 		}
 	}

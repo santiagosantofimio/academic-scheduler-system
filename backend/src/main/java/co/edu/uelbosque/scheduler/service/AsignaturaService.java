@@ -44,12 +44,17 @@ public class AsignaturaService extends AbstractCrudService<Asignatura, Asignatur
 
 	@Override
 	protected void aplicar(AsignaturaDTO data, Asignatura entity, boolean nuevo) {
-		texto(data.getCodigo(), "codigo");
+		data.setCodigo(texto(data.getCodigo(), "codigo"));
+		data.setNombre(texto(data.getNombre(), "nombre"));
 		verificarNombre(data.getNombre());
 		verificarAreaConocimiento(data.getAreaConocimiento());
 		verificarSemestre(data.getSemestre());
 		verificarCreditos(data.getCreditos());
 		verificarSesionesSemanales(data.getSesionesSemanales());
+		if (data.getCreditos() > 20)
+			throw new CreditosInvalidosException("Los creditos de una asignatura no pueden superar 20");
+		if (data.getSesionesSemanales() > 6)
+			throw new SesionesSemanalesInvalidasException("Una asignatura admite maximo 6 sesiones semanales");
 		Long padre = data.getPlanEstudiosId() != null ? data.getPlanEstudiosId()
 				: entity.getPlanEstudios() == null ? null : entity.getPlanEstudios().getIdPlan();
 		verificarId(padre);

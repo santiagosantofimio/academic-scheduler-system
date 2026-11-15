@@ -51,7 +51,7 @@ public class GrupoService extends AbstractCrudService<Grupo, GrupoDTO> {
 
 	@Override
 	protected void aplicar(GrupoDTO data, Grupo entity, boolean nuevo) {
-		texto(data.getNumeroGrupo(), "numeroGrupo");
+		data.setNumeroGrupo(texto(data.getNumeroGrupo(), "numeroGrupo"));
 		verificarEstado(data.getEstado());
 		verificarCupo(data.getCupoEsperado());
 		Long padre = data.getAsignaturaId() != null ? data.getAsignaturaId()

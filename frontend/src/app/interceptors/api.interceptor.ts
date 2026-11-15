@@ -5,11 +5,13 @@ import {
   HttpInterceptor,
   HttpRequest,
   HttpErrorResponse,
+  HttpResponse,
 } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { Observable, catchError, throwError } from 'rxjs';
+import { Observable, catchError, filter, map, switchMap, throwError } from 'rxjs';
 import { AuthService } from '../services/auth.service';
 import { environment } from '../../environments/environment';
+import { TokenCsrf } from '../interfaces/api.models';
 
 @Injectable()
 export class ApiInterceptor implements HttpInterceptor {
@@ -21,13 +23,33 @@ export class ApiInterceptor implements HttpInterceptor {
     const base = environment.apiUrl.replace(/\/$/, '');
     if (!request.url.startsWith(`${base}/`) && request.url !== base) return next.handle(request);
     const auth = this.injector.get(AuthService);
-    let headers = request.headers.set('X-Requested-With', 'XMLHttpRequest');
-    if (auth.authorizationHeader && !headers.has('Authorization'))
-      headers = headers.set('Authorization', auth.authorizationHeader);
     const escritura = !['GET', 'HEAD', 'OPTIONS'].includes(request.method);
-    if (escritura && auth.csrfToken)
-      headers = headers.set(auth.csrfToken.headerName, auth.csrfToken.token);
-    return next.handle(request.clone({ headers, withCredentials: true })).pipe(
+    const preparar = (req: HttpRequest<unknown>): HttpRequest<unknown> => {
+      let headers = req.headers.set('X-Requested-With', 'XMLHttpRequest');
+      if (auth.authorizationHeader && !headers.has('Authorization'))
+        headers = headers.set('Authorization', auth.authorizationHeader);
+      if (escritura && auth.csrfToken)
+        headers = headers.set(auth.csrfToken.headerName, auth.csrfToken.token);
+      return req.clone({ headers, withCredentials: true });
+    };
+    const enviar = (): Observable<HttpEvent<unknown>> => next.handle(preparar(request));
+    return enviar().pipe(
+      catchError((error: unknown) => {
+        if (
+          escritura &&
+          auth.authorizationHeader &&
+          error instanceof HttpErrorResponse &&
+          error.status === 403
+        )
+          return this.nuevoToken(base, next).pipe(
+            switchMap((csrf) => {
+              auth.renovarCsrf(csrf);
+              return enviar();
+            }),
+            catchError(() => throwError(() => error)),
+          );
+        return throwError(() => error);
+      }),
       catchError((error: unknown) => {
         if (error instanceof HttpErrorResponse && error.status === 401 && auth.usuario) {
           auth.cerrar();
@@ -36,5 +58,24 @@ export class ApiInterceptor implements HttpInterceptor {
         return throwError(() => error);
       }),
     );
+  }
+  private nuevoToken(base: string, next: HttpHandler): Observable<TokenCsrf> {
+    const auth = this.injector.get(AuthService);
+    const peticion = new HttpRequest<unknown>('GET', `${base}/csrf`, null, {
+      withCredentials: true,
+    });
+    return next
+      .handle(
+        peticion.clone({
+          setHeaders: {
+            'X-Requested-With': 'XMLHttpRequest',
+            Authorization: auth.authorizationHeader ?? '',
+          },
+        }),
+      )
+      .pipe(
+        filter((evento): evento is HttpResponse<TokenCsrf> => evento instanceof HttpResponse),
+        map((respuesta) => respuesta.body as TokenCsrf),
+      );
   }
 }
