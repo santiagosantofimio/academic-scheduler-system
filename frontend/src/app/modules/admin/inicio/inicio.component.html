@@ -50,9 +50,14 @@
         </div>
         <select aria-label="Filtrar horario por grupo" [(ngModel)]="groupFilter">
           <option [ngValue]="0">Todos los grupos</option>
-          <option *ngFor="let g of data.grupos" [ngValue]="g.idGrupo">
-            {{ nombreGrupo(g) }}
-          </option>
+          <optgroup
+            *ngFor="let bloque of gruposPorSemestre"
+            [label]="bloque.semestre === null ? 'Sin semestre' : 'Semestre ' + bloque.semestre"
+          >
+            <option *ngFor="let g of bloque.grupos" [ngValue]="g.idGrupo">
+              {{ nombreGrupo(g) }}
+            </option>
+          </optgroup>
         </select>
       </header>
       <app-semana

@@ -18,3 +18,10 @@
 .review-footer p { color: var(--text-3); font-size: 12.5px; line-height: 1.5; }
 .review-footer a { display: inline-flex; align-items: center; gap: 6px; margin-top: 10px; font-size: 13.5px; font-weight: 650; }
 @media (max-width: 1100px) { .schedule-workspace { grid-template-columns: 1fr; } .schedule-review { position: static; } }
+
+.session-fields { min-width: 0; margin: 0; padding: 0; border: 0; }
+.session-fields legend { float: none; width: auto; margin: 0 0 10px; color: var(--text); font-size: 14px; font-weight: 650; }
+.session-fields .field-error { margin-bottom: 12px; }
+@media (min-width: 800px) {
+  .batch-session-grid { grid-template-columns: minmax(0, 1.1fr) repeat(3, minmax(0, 1fr)); column-gap: 12px; }
+}

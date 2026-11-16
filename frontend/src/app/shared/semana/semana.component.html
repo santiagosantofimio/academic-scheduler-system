@@ -17,7 +17,8 @@
       *ngFor="let day of dias; let index = index"
       [style.height.px]="height"
       [style.background-size]="'100% ' + 60 * scale + 'px'"
-      (dragover)="allowDrop($event)"
+      (dragover)="allowDrop($event, day.valor)"
+      (dragleave)="leaveDrop($event, day.valor)"
       (drop)="drop($event, day.valor)"
     >
       <div class="outside-hours outside-hours-top" [style.height.px]="blockedTop(index)"></div>
@@ -33,23 +34,35 @@
       >
         <span>Descanso</span>
       </div>
+      <div
+        *ngIf="dropPreview?.movimiento?.diaSemana === day.valor"
+        class="week-drop-preview"
+        [style.top.px]="dropPreview?.top"
+        [style.height.px]="dropPreview?.height"
+        aria-hidden="true"
+      >
+        {{ dropPreview?.movimiento?.horaInicio }} – {{ dropPreview?.movimiento?.horaFin }}
+      </div>
       <button
         type="button"
         *ngFor="let item of days[index]; trackBy: trackSesion"
         class="session-block"
         [class]="'session-block session-color-' + item.color"
+        [class.session-block-compact]="editable && item.height < 100"
         [style.top.px]="item.top"
         [style.height.px]="item.height"
         [style.left.%]="item.left"
         [style.width]="'calc(' + item.width + '% - 5px)'"
         [draggable]="editable"
         (dragstart)="drag($event, item.sesion)"
+        (dragend)="endDrag()"
         (click)="selectSession.emit(item.sesion)"
         [attr.aria-label]="
           item.title +
+          ', Grupo ' +
+          item.numeroGrupo +
           ', ' +
-          item.subtitle +
-          ', ' +
+          (editable ? item.docente + ', ' : '') +
           day.nombre +
           ' de ' +
           item.sesion.horaInicio.slice(0, 5) +
@@ -58,8 +71,8 @@
         "
         [title]="
           item.title +
-          ' · ' +
-          item.subtitle +
+          ' · Grupo ' +
+          item.numeroGrupo +
           '\n' +
           item.docente +
           '\n' +
@@ -69,7 +82,8 @@
         "
       >
         <strong>{{ item.title }}</strong
-        ><span>{{ item.subtitle }}</span
+        ><span>Grupo <strong>{{ item.numeroGrupo }}</strong></span
+        ><span *ngIf="editable">{{ item.docente }}</span
         ><small
           >{{ item.sesion.horaInicio.slice(0, 5) }} - {{ item.sesion.horaFin.slice(0, 5) }}</small
         >

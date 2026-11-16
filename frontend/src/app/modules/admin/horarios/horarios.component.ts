@@ -1,7 +1,7 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { FormBuilder, Validators } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
-import { finalize } from 'rxjs';
+import { finalize, Observable, Subscription } from 'rxjs';
 import { AcademicoService } from '../../../services/academico.service';
 import { mensajeError } from '../../../services/api-error';
 import { ObservacionHorario, ValidacionHorarioService } from '../../../services/validacion-horario.service';
@@ -13,6 +13,8 @@ import {
   SesionHorarioDTO,
 } from '../../../interfaces/api.models';
 import { guardarArchivo } from '../../../shared/descarga';
+import { ordenHoras } from '../../../shared/form-validators';
+import { agruparGruposPorSemestre, detalleGrupo, GruposPorSemestre } from '../../../shared/grupo';
 import { MovimientoSesion } from '../../../shared/semana/semana.component';
 @Component({
   selector: 'app-horarios',
@@ -20,7 +22,7 @@ import { MovimientoSesion } from '../../../shared/semana/semana.component';
   templateUrl: './horarios.component.html',
   styleUrl: './horarios.component.css',
 })
-export class HorariosComponent implements OnInit {
+export class HorariosComponent implements OnInit, OnDestroy {
   data: DatosPlaneacion | null = null;
   observaciones: ObservacionHorario[] = [];
   observacionesVisibles: ObservacionHorario[] = [];
@@ -35,37 +37,64 @@ export class HorariosComponent implements OnInit {
   listView = false;
   generationOpen = false;
   generationGroup: number | null = null;
+  gruposPorSemestre: GruposPorSemestre[] = [];
+  gruposParaGenerar: GruposPorSemestre[] = [];
   editorOpen = false;
   editing: SesionHorarioDTO | null = null;
   deleting: SesionHorarioDTO | null = null;
   readonly dias = DIAS;
   readonly form;
+  private readonly cambiosGrupo: Subscription;
   constructor(
     private readonly api: AcademicoService,
     private readonly route: ActivatedRoute,
-    fb: FormBuilder,
+    private readonly fb: FormBuilder,
     private readonly validacion: ValidacionHorarioService,
   ) {
-    this.form = fb.group(
-      {
-        grupoId: [null as number | null, Validators.required],
-        diaSemana: ['MONDAY' as DiaSemana, Validators.required],
-        horaInicio: ['', Validators.required],
-        horaFin: ['', Validators.required],
-        estado: ['PROGRAMADA' as 'PROGRAMADA' | 'CANCELADA', Validators.required],
-      },
-      {
-        validators: (control) =>
-          control.value.horaInicio &&
-          control.value.horaFin &&
-          control.value.horaInicio >= control.value.horaFin
-            ? { horas: true }
-            : null,
-      },
-    );
+    this.form = fb.group({
+      grupoId: fb.control<number | null>(null, Validators.required),
+      sesiones: fb.array<ReturnType<HorariosComponent['formularioSesion']>>([]),
+    });
+    this.cambiosGrupo = this.form.controls.grupoId.valueChanges.subscribe((grupoId) => {
+      this.modalError = '';
+      this.cargarSesionesPendientes(grupoId);
+    });
   }
   ngOnInit(): void {
     this.load(true);
+  }
+  ngOnDestroy(): void {
+    this.cambiosGrupo.unsubscribe();
+  }
+  get sesionesFormulario() {
+    return this.form.controls.sesiones;
+  }
+  private formularioSesion(sesion?: SesionHorarioDTO) {
+    return this.fb.group(
+      {
+        diaSemana: this.fb.control<DiaSemana | null>(sesion?.diaSemana ?? null, Validators.required),
+        horaInicio: this.fb.nonNullable.control(sesion?.horaInicio ?? '', Validators.required),
+        horaFin: this.fb.nonNullable.control(sesion?.horaFin ?? '', Validators.required),
+        estado: this.fb.nonNullable.control<SesionHorarioDTO['estado']>(
+          sesion?.estado ?? 'PROGRAMADA',
+          Validators.required,
+        ),
+      },
+      { validators: ordenHoras('horaInicio', 'horaFin') },
+    );
+  }
+  private cargarSesionesPendientes(grupoId: number | null): void {
+    this.sesionesFormulario.clear();
+    if (!this.data || grupoId === null) return;
+    const grupo = this.data.grupos.find((g) => g.idGrupo === grupoId);
+    const asignatura = this.data.asignaturas.find((a) => a.idAsginatura === grupo?.asignaturaId);
+    if (!asignatura) return;
+    const programadas = this.data.sesiones.filter(
+      (s) => s.grupoId === grupoId && s.estado === 'PROGRAMADA',
+    ).length;
+    for (let i = programadas; i < asignatura.sesionesSemanales; i++) {
+      this.sesionesFormulario.push(this.formularioSesion());
+    }
   }
   load(initial = false): void {
     this.loading = true;
@@ -88,6 +117,13 @@ export class HorariosComponent implements OnInit {
   }
   private actualizarDatos(data: DatosPlaneacion): void {
     this.data = data;
+    this.gruposPorSemestre = agruparGruposPorSemestre(data);
+    this.gruposParaGenerar = this.gruposPorSemestre
+      .map(({ semestre, grupos }) => ({
+        semestre,
+        grupos: grupos.filter((grupo) => grupo.estado === 'ACTIVO' && grupo.docenteId),
+      }))
+      .filter(({ grupos }) => grupos.length > 0);
     this.sesionesProgramadas = data.sesiones.filter((s) => s.estado === 'PROGRAMADA').length;
     this.observaciones = this.validacion.revisar(data);
     this.observacionesVisibles = this.observaciones.slice(0, 3);
@@ -106,13 +142,12 @@ export class HorariosComponent implements OnInit {
   get calendarSessions(): SesionHorarioDTO[] {
     return this.filtered.filter((s) => s.estado === 'PROGRAMADA');
   }
-  get eligibleGroups() {
-    return this.data?.grupos.filter((g) => g.estado === 'ACTIVO' && g.docenteId) || [];
+  grupo(id: number) {
+    return detalleGrupo(this.data, id);
   }
-  grupo(id: number): string {
-    const g = this.data?.grupos.find((x) => x.idGrupo === id);
-    const a = this.data?.asignaturas.find((x) => x.idAsginatura === g?.asignaturaId);
-    return `${a?.nombre || 'Asignatura'} · Grupo ${g?.numeroGrupo || id}`;
+  nombreGrupo(id: number): string {
+    const { asignatura, numero } = this.grupo(id);
+    return `${asignatura} · Grupo ${numero}`;
   }
   docente(id: number): string {
     const g = this.data?.grupos.find((x) => x.idGrupo === id);
@@ -125,44 +160,44 @@ export class HorariosComponent implements OnInit {
   open(session: SesionHorarioDTO | null = null): void {
     this.editing = session;
     this.modalError = '';
-    this.form.reset(
-      session
-        ? { ...session }
-        : {
-            grupoId: Number(this.groupFilter) || null,
-            diaSemana: 'MONDAY',
-            horaInicio: '',
-            horaFin: '',
-            estado: 'PROGRAMADA',
-          },
-    );
+    const grupoId = session?.grupoId ?? (Number(this.groupFilter) || null);
+    this.form.controls.grupoId.reset({ value: grupoId, disabled: !!session }, { emitEvent: false });
+    if (session) {
+      this.sesionesFormulario.clear();
+      this.sesionesFormulario.push(this.formularioSesion(session));
+    } else {
+      this.cargarSesionesPendientes(grupoId);
+    }
     this.editorOpen = true;
   }
   move(m: MovimientoSesion): void {
     this.open(m.sesion);
-    this.form.patchValue({ diaSemana: m.diaSemana, horaInicio: m.horaInicio, horaFin: m.horaFin });
+    this.sesionesFormulario.at(0).patchValue({
+      diaSemana: m.diaSemana,
+      horaInicio: m.horaInicio,
+      horaFin: m.horaFin,
+    });
   }
   save(): void {
     this.form.markAllAsTouched();
-    if (this.form.invalid || this.busy) return;
+    if (this.form.invalid || this.busy || !this.sesionesFormulario.length) return;
     this.busy = true;
     this.modalError = '';
-    const values = this.form.getRawValue();
-    const payload: SesionHorarioDTO = {
-      grupoId: Number(values.grupoId),
-      diaSemana: values.diaSemana!,
-      horaInicio: values.horaInicio!,
-      horaFin: values.horaFin!,
-      estado: values.estado!,
-    };
+    const { grupoId, sesiones } = this.form.getRawValue();
+    const payload: SesionHorarioDTO[] = sesiones.map((sesion) => ({
+      ...sesion,
+      grupoId: grupoId!,
+      diaSemana: sesion.diaSemana!,
+    }));
     const editing = this.editing;
-    const request = editing
-      ? this.api.sesiones.actualizar(editing.idSesion!, payload)
-      : this.api.sesiones.crear(payload);
+    const request: Observable<unknown> = editing
+      ? this.api.sesiones.actualizar(editing.idSesion!, payload[0])
+      : this.api.agregarSesiones(grupoId!, payload);
     request.pipe(finalize(() => (this.busy = false))).subscribe({
       next: () => {
         this.editorOpen = false;
-        this.success = 'La sesión se guardó y sus condiciones fueron comprobadas por el servidor.';
+        this.success =
+          payload.length === 1 ? 'La sesión se guardó.' : 'Las sesiones se guardaron.';
         this.load();
       },
       error: (error) => (this.modalError = mensajeError(error)),

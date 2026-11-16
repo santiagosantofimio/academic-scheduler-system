@@ -1547,6 +1547,20 @@ a.table-name:hover {
 .week-day:last-child {
   border-right: 0;
 }
+.week-drop-preview {
+  position: absolute;
+  inset-inline: 2px;
+  z-index: 4;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border: 2px dashed var(--accent-text);
+  border-radius: 8px;
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  font-weight: 600;
+  pointer-events: none;
+}
 .outside-hours {
   position: absolute;
   left: 0;
@@ -1615,7 +1629,7 @@ a.table-name:hover {
 .session-block[draggable='true']:active {
   cursor: grabbing;
 }
-.session-block strong {
+.session-block > strong {
   font-size: 12px;
   font-weight: 650;
   display: -webkit-box;
@@ -1635,6 +1649,19 @@ a.table-name:hover {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+.session-block-compact {
+  padding-block: 2px;
+  line-height: 1.1;
+}
+.session-block-compact > strong {
+  display: block;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.session-block-compact span,
+.session-block-compact small {
+  margin-top: 1px;
 }
 .session-color-1 {
   background: var(--s1-bg);

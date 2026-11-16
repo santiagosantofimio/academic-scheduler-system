@@ -1,5 +1,6 @@
 package co.edu.uelbosque.scheduler;
 
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
@@ -8,10 +9,15 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.support.EncodedResource;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.datasource.DataSourceUtils;
+import org.springframework.jdbc.datasource.init.ScriptUtils;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.transaction.annotation.Transactional;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import co.edu.uelbosque.scheduler.dto.AsignaturaDTO;
 import co.edu.uelbosque.scheduler.dto.SesionHorarioDTO;
@@ -21,6 +27,7 @@ import co.edu.uelbosque.scheduler.service.DocenteService;
 import co.edu.uelbosque.scheduler.exception.AsignacionAcademicaInvalidaException;
 import co.edu.uelbosque.scheduler.service.GrupoService;
 import co.edu.uelbosque.scheduler.service.HorarioDocenteService;
+import co.edu.uelbosque.scheduler.service.RequisitoAsignaturaService;
 import co.edu.uelbosque.scheduler.service.SesionHorarioService;
 import co.edu.uelbosque.scheduler.service.VersionHorarioService;
 import co.edu.uelbosque.scheduler.service.NovedadDocenteService;
@@ -30,12 +37,14 @@ import co.edu.uelbosque.scheduler.dto.NovedadDocenteDTO;
 import co.edu.uelbosque.scheduler.entity.EstadoSesion;
 import co.edu.uelbosque.scheduler.entity.EstadoVersion;
 import co.edu.uelbosque.scheduler.entity.TipoNovedad;
+import co.edu.uelbosque.scheduler.exception.CruceHorarioException;
 import co.edu.uelbosque.scheduler.exception.DisponibilidadInvalidaException;
 import co.edu.uelbosque.scheduler.exception.PublicacionRechazadaException;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import java.time.DayOfWeek;
+import java.time.LocalTime;
 import static org.junit.jupiter.api.Assertions.*;
 
 @Testcontainers(disabledWithoutDocker = true)
@@ -52,6 +61,7 @@ class IntegracionMySqlTest {
     @Autowired private AsignaturaService asignaturas;
     @Autowired private GrupoService grupos;
     @Autowired private HorarioDocenteService miHorario;
+    @Autowired private RequisitoAsignaturaService requisitos;
     @Autowired private DocenteService docentes;
     @Autowired private VersionHorarioService versiones;
     @Autowired private NovedadDocenteService novedades;
@@ -71,11 +81,59 @@ class IntegracionMySqlTest {
         return jdbc.queryForObject(sql, Long.class);
     }
     @Test void aplicaLaMigracionYLosDatosDeDemostracion() {
-        assertEquals(3, contar("select count(*) from flyway_schema_history where success"));
+        assertEquals(4, contar("select count(*) from flyway_schema_history where success"));
         assertEquals(12, contar("select count(*) from docente"));
         assertEquals(58, contar("select count(*) from grupo"));
         assertEquals(58, contar("select count(*) from asignatura"));
         assertEquals(148, contar("select sum(creditos) from asignatura"));
+        assertEquals(58, contar("select count(*) from requisito_asignatura"));
+        assertEquals(58, contar("select count(distinct asignatura_id) from requisito_asignatura"));
+        assertEquals("Redes e infraestructura", requisitos.findByAsignaturaId(900025L).getFirst().getAreaConocimiento());
+        for (var grupo : grupos.getAll()) {
+            if (grupo.getDocenteId() != null) {
+                assertDoesNotThrow(() -> requisitos.validarDocente(grupo.getAsignaturaId(), grupo.getDocenteId()));
+            }
+        }
+    }
+    @Test
+    @Transactional
+    void reaplicarRequisitosDemoRespetaLosCambiosDelCatalogo() {
+        assertEquals(1, jdbc.update("update plan_estudios set codigo_programa = '886' where id_plan = 900001"));
+        assertEquals(1, jdbc.update("delete from grupo where id_grupo = 900007"));
+        assertEquals(2, jdbc.update("delete from requisito_asignatura where asignatura_id in (900001, 900025)"));
+        assertEquals(1, jdbc.update("""
+                update requisito_asignatura set descripcion = 'Requisito personalizado'
+                where asignatura_id = 900030
+                """));
+        jdbc.update("""
+                insert into usuario (id, nombre, apellido, numero_documento, correo_institucional, contrasenia, estado)
+                values (777002, 'Docente', 'Externo', '777002', 'externo@example.test', '{noop}x', true)
+                """);
+        jdbc.update("""
+                insert into docente (id, tipo_vinculacion, escalafon, especialidad, horas_maximas_docencia_semanal)
+                values (777002, 'MEDIO_TIEMPO', 'A', 'Matemáticas', 10)
+                """);
+        assertEquals(1, jdbc.update("update grupo set docente_id = 777002 where id_grupo = 900003"));
+
+        var dataSource = jdbc.getDataSource();
+        var conexion = DataSourceUtils.getConnection(dataSource);
+        try {
+            var script = new ClassPathResource("db/seed/R__requisitos_demo.sql");
+            ScriptUtils.executeSqlScript(conexion, new EncodedResource(script, StandardCharsets.UTF_8));
+        } finally {
+            DataSourceUtils.releaseConnection(conexion, dataSource);
+        }
+
+        assertEquals("886", jdbc.queryForObject(
+                "select codigo_programa from plan_estudios where id_plan = 900001", String.class));
+        assertEquals(0, contar("select count(*) from grupo where asignatura_id = 900027"));
+        assertEquals("Redes e infraestructura", jdbc.queryForObject(
+                "select area_conocimiento from requisito_asignatura where asignatura_id = 900025", String.class));
+        assertDoesNotThrow(() -> requisitos.validarDocente(900025L, 900003L));
+        assertEquals(0, contar("select count(*) from requisito_asignatura where asignatura_id = 900001"));
+        assertEquals(0, contar("select count(*) from formacion_academica where docente_id = 777002"));
+        assertEquals("Requisito personalizado", jdbc.queryForObject(
+                "select descripcion from requisito_asignatura where asignatura_id = 900030", String.class));
     }
     @Test void elAdministradorInicialPuedeAutenticarseYNoComparteIdConDocentes() {
         var cuenta = usuarios.loadUserByUsername("admin@example.test");
@@ -87,6 +145,22 @@ class IntegracionMySqlTest {
         assertEquals(2, generadas.size());
         assertEquals(2, generadas.stream().map(SesionHorarioDTO::getDiaSemana).distinct().count());
         assertEquals(generadas, sesiones.generarHorarioGrupo(GRUPO_PROGRAMACION));
+    }
+    @Test void lasSesionesManualesSeGuardanJuntasOSeReviertenPorCompleto() {
+        var lunes = new SesionHorarioDTO(DayOfWeek.MONDAY, LocalTime.of(9, 0), LocalTime.of(11, 0), EstadoSesion.PROGRAMADA);
+        var cruce = new SesionHorarioDTO(DayOfWeek.MONDAY, LocalTime.of(10, 0), LocalTime.of(12, 0), EstadoSesion.PROGRAMADA);
+        var miercoles = new SesionHorarioDTO(DayOfWeek.WEDNESDAY, LocalTime.of(9, 0), LocalTime.of(11, 0), EstadoSesion.PROGRAMADA);
+        assertThrows(CruceHorarioException.class,
+                () -> sesiones.registrarSesiones(GRUPO_PROGRAMACION, List.of(lunes, cruce)));
+        assertTrue(sesiones.findByGrupoId(GRUPO_PROGRAMACION).isEmpty());
+        assertTrue(auditoria.recientes().isEmpty());
+
+        sesiones.registrarSesiones(GRUPO_PROGRAMACION, List.of(lunes, miercoles));
+        var guardadas = sesiones.findByGrupoId(GRUPO_PROGRAMACION);
+        assertEquals(List.of(DayOfWeek.MONDAY, DayOfWeek.WEDNESDAY), guardadas.stream().map(SesionHorarioDTO::getDiaSemana).toList());
+        assertTrue(guardadas.stream().allMatch(s -> s.getHoraInicio().equals(LocalTime.of(9, 0))
+                && s.getHoraFin().equals(LocalTime.of(11, 0))));
+        assertEquals(2, auditoria.recientes().size());
     }
     @Test void generacionesSimultaneasDelMismoDocenteNoSeCruzan() throws Exception {
         try (var hilos = Executors.newFixedThreadPool(2)) {

@@ -118,6 +118,9 @@ export class AcademicoService {
       responseType: 'blob',
     });
   }
+  agregarSesiones(grupoId: number, sesiones: SesionHorarioDTO[]): Observable<void> {
+    return this.http.post<void>(`${this.sesiones.url}/grupo/${grupoId}/manual`, sesiones);
+  }
   generar(grupoId: number): Observable<SesionHorarioDTO[]> {
     return this.http.post<SesionHorarioDTO[]>(
       `${environment.apiUrl}/sesiones/grupo/${grupoId}/generar`,

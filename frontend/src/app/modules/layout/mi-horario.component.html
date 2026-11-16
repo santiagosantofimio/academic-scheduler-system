@@ -61,7 +61,10 @@
         </thead>
         <tbody>
           <tr *ngFor="let s of sesiones">
-            <td class="table-name">{{ grupo(s.grupoId) }}</td>
+            <td>
+              @let detalle = grupo(s.grupoId);
+              {{ detalle.asignatura }} · Grupo <strong>{{ detalle.numero }}</strong>
+            </td>
             <td>{{ nombreDia(s.diaSemana) }}</td>
             <td class="nowrap">{{ s.horaInicio.slice(0, 5) }} - {{ s.horaFin.slice(0, 5) }}</td>
           </tr>

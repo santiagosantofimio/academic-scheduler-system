@@ -1,7 +1,7 @@
 <form [formGroup]="form" (ngSubmit)="enviar()" novalidate>
   <div class="form-grid">
     <div
-      *ngFor="let field of fields"
+      *ngFor="let field of camposVisibles"
       class="field"
       [class.field-full]="field.full"
       [class.field-checkbox]="field.type === 'checkbox'"

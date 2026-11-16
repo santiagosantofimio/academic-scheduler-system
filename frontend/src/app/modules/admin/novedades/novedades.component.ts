@@ -11,6 +11,7 @@ import {
   NovedadDocenteDTO,
   TipoNovedad,
 } from '../../../interfaces/api.models';
+import { numeroGrupoVisible } from '../../../shared/grupo';
 
 @Component({
   selector: 'app-novedades',
@@ -28,6 +29,7 @@ export class NovedadesComponent implements OnInit {
   afectadas: ClaseAfectadaDTO[] = [];
   cargandoAfectadas = false;
   readonly dias = DIAS;
+  readonly numeroGrupoVisible = numeroGrupoVisible;
   readonly tipos: { valor: TipoNovedad; nombre: string }[] = [
     { valor: 'INCAPACIDAD', nombre: 'Incapacidad' },
     { valor: 'CAMBIO_DISPONIBILIDAD', nombre: 'Cambio de disponibilidad' },
@@ -119,7 +121,7 @@ export class NovedadesComponent implements OnInit {
       .pipe(finalize(() => (this.busy = false)))
       .subscribe({
         next: () => {
-          this.success = `${clase.asignatura}, grupo ${clase.grupo}, quedó el ${this.franja(franja)}.`;
+          this.success = `${clase.asignatura}, grupo ${numeroGrupoVisible(clase.grupo)}, quedó el ${this.franja(franja)}.`;
           this.abierta = null;
           this.verAfectadas(novedad);
         },

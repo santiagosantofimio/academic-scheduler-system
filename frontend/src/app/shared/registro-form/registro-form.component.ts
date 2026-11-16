@@ -60,6 +60,9 @@ export class RegistroFormComponent implements OnChanges, OnDestroy {
   constructor(private readonly fb: FormBuilder) {
     this.form = this.fb.group({});
   }
+  get camposVisibles(): Campo[] {
+    return this.fields.filter((campo) => !this.form.get(campo.key)?.disabled);
+  }
   ngOnChanges(changes: SimpleChanges): void {
     if (!changes['fields'] && !changes['value']) return;
     this.conditionalSubscription?.unsubscribe();
@@ -88,18 +91,20 @@ export class RegistroFormComponent implements OnChanges, OnDestroy {
       this.form.addValidators(ordenFechas('fechaInicio', 'fechaFin'));
     if (this.form.get('horaInicio') && this.form.get('horaFin'))
       this.form.addValidators(ordenHoras('horaInicio', 'horaFin'));
-    if (this.form.get('tipoRequisito')) {
-      const update = (): void => {
-        const control = this.form.get('nivelFormacionMinimo');
-        control?.setValidators(
-          this.form.get('tipoRequisito')?.value === 'FORMACION_ACADEMICA'
-            ? Validators.required
-            : null,
-        );
-        control?.updateValueAndValidity({ emitEvent: false });
+    const tipoRequisito = this.form.get('tipoRequisito');
+    if (tipoRequisito) {
+      const nivel = this.form.get('nivelFormacionMinimo');
+      const anios = this.form.get('aniosExperienciaMinima');
+      const actualizarCampos = (tipo: string | null): void => {
+        const formacion = tipo === 'FORMACION_ACADEMICA';
+        const opciones = { emitEvent: false };
+        if (formacion) nivel?.enable(opciones);
+        else nivel?.disable(opciones);
+        if (tipo && !formacion) anios?.enable(opciones);
+        else anios?.disable(opciones);
       };
-      this.conditionalSubscription = this.form.get('tipoRequisito')?.valueChanges.subscribe(update);
-      update();
+      this.conditionalSubscription = tipoRequisito.valueChanges.subscribe(actualizarCampos);
+      actualizarCampos(tipoRequisito.value);
     }
   }
   ngOnDestroy(): void {
@@ -115,8 +120,9 @@ export class RegistroFormComponent implements OnChanges, OnDestroy {
       else if (field.type === 'password' && !value[field.key]) value[field.key] = null;
       else if (value[field.key] === '') value[field.key] = null;
     }
-    if (value['tipoRequisito'] && value['tipoRequisito'] !== 'FORMACION_ACADEMICA')
-      value['nivelFormacionMinimo'] = null;
+    const tipoRequisito = value['tipoRequisito'];
+    if (tipoRequisito === 'FORMACION_ACADEMICA') value['aniosExperienciaMinima'] = 0;
+    else if (tipoRequisito) value['nivelFormacionMinimo'] = null;
     this.save.emit(value);
   }
 }

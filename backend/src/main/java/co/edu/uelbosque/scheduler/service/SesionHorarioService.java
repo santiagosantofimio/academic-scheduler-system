@@ -96,6 +96,14 @@ public class SesionHorarioService extends AbstractCrudService<SesionHorario, Ses
 		return create(data);
 	}
 
+	@Transactional
+	public void registrarSesiones(Long grupoId, List<SesionHorarioDTO> datos) {
+		if (datos == null || datos.isEmpty())
+			throw new DatosInvalidosException("Debe indicar al menos una sesion");
+		for (SesionHorarioDTO data : datos)
+			registrarSesion(grupoId, data);
+	}
+
 	@Override
 	@Transactional
 	public int deleteById(Long id) {

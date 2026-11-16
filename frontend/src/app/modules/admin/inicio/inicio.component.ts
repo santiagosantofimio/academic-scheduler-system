@@ -4,6 +4,7 @@ import { finalize } from 'rxjs';
 import { AcademicoService } from '../../../services/academico.service';
 import { mensajeError } from '../../../services/api-error';
 import { DatosPlaneacion, GrupoDTO, SesionHorarioDTO } from '../../../interfaces/api.models';
+import { agruparGruposPorSemestre, GruposPorSemestre, numeroGrupoVisible } from '../../../shared/grupo';
 import {
   ObservacionHorario,
   ValidacionHorarioService,
@@ -14,6 +15,7 @@ export class InicioComponent implements OnInit {
   loading = true;
   error = '';
   groupFilter = 0;
+  gruposPorSemestre: GruposPorSemestre[] = [];
   observaciones: ObservacionHorario[] = [];
   constructor(
     private readonly api: AcademicoService,
@@ -32,6 +34,7 @@ export class InicioComponent implements OnInit {
       .subscribe({
         next: (data) => {
           this.data = data;
+          this.gruposPorSemestre = agruparGruposPorSemestre(data);
           this.observaciones = this.validation.revisar(data);
         },
         error: (error) => (this.error = mensajeError(error)),
@@ -75,7 +78,7 @@ export class InicioComponent implements OnInit {
   }
   nombreGrupo(g: GrupoDTO): string {
     const asignatura = this.data?.asignaturas.find((a) => a.idAsginatura === g.asignaturaId);
-    return `${asignatura?.nombre || 'Asignatura'} · Grupo ${g.numeroGrupo}`;
+    return `${asignatura?.nombre || 'Asignatura'} · Grupo ${numeroGrupoVisible(g.numeroGrupo)}`;
   }
   abrirSesion(session: SesionHorarioDTO): void {
     void this.router.navigate(['/horarios'], { queryParams: { sesion: session.idSesion } });
