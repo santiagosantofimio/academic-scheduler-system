@@ -12,7 +12,6 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.test.context.ActiveProfiles;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import co.edu.uelbosque.scheduler.dto.AsignaturaDTO;
 import co.edu.uelbosque.scheduler.dto.SesionHorarioDTO;
@@ -41,7 +40,6 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @Testcontainers(disabledWithoutDocker = true)
 @SpringBootTest(properties = { "scheduler.admin.correo=admin@example.test", "scheduler.admin.contrasenia=clave-prueba" })
-@ActiveProfiles("dev")
 @Import(TestcontainersConfiguration.class)
 class IntegracionMySqlTest {
     private static final long GRUPO_PROGRAMACION = 900001L;
@@ -74,8 +72,8 @@ class IntegracionMySqlTest {
     }
     @Test void aplicaLaMigracionYLosDatosDeDemostracion() {
         assertEquals(3, contar("select count(*) from flyway_schema_history where success"));
-        assertEquals(4, contar("select count(*) from docente"));
-        assertEquals(7, contar("select count(*) from grupo"));
+        assertEquals(12, contar("select count(*) from docente"));
+        assertEquals(58, contar("select count(*) from grupo"));
         assertEquals(58, contar("select count(*) from asignatura"));
         assertEquals(148, contar("select sum(creditos) from asignatura"));
     }
@@ -138,7 +136,7 @@ class IntegracionMySqlTest {
         docentes.deleteById(777001L);
         assertEquals(0, contar("select count(*) from usuario where id = 777001"));
         assertEquals(0, contar("select count(*) from disponibilidad_docente where docente_id = 777001"));
-        assertEquals(4, contar("select count(*) from docente"));
+        assertEquals(12, contar("select count(*) from docente"));
     }
     @Test void publicarExigeUnHorarioSinConflictosYConservaLasVersionesAnteriores() {
         sesiones.generarHorarioGrupo(GRUPO_PROGRAMACION);
