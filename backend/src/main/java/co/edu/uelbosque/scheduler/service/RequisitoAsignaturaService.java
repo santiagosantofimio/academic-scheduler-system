@@ -71,7 +71,7 @@ public class RequisitoAsignaturaService extends AbstractCrudService<RequisitoAsi
 		entity.setAsignatura(asignatura);
 		for (Grupo grupo : grupos.findByAsignaturaId(id).orElseGet(List::of)) {
 			if (grupo.getEstado() == EstadoGrupo.ACTIVO && grupo.getDocente() != null)
-				verificarRequisito(entity, grupo.getDocente().getId());
+				verificarRequisito(entity, grupo.getDocente());
 		}
 	}
 
@@ -106,7 +106,7 @@ public class RequisitoAsignaturaService extends AbstractCrudService<RequisitoAsi
 				.orElseThrow(() -> new RecursoNoEncontradoException("Docente no encontrado"));
 		verificarAsignacionAcademica(docente.isEstado());
 		for (RequisitoAsignatura requisito : rep.findByAsignaturaId(asignaturaId).orElseGet(List::of))
-			verificarRequisito(requisito, docenteId);
+			verificarRequisito(requisito, docente);
 	}
 
 	public void validarAsignacionesDocente(Long docenteId) {
@@ -116,28 +116,44 @@ public class RequisitoAsignaturaService extends AbstractCrudService<RequisitoAsi
 				validarDocente(grupo.getAsignatura().getIdAsginatura(), docenteId);
 	}
 
-	private void verificarRequisito(RequisitoAsignatura requisito, Long docenteId) {
-		boolean cumple;
+	private void verificarRequisito(RequisitoAsignatura requisito, Docente docente) {
+		String area = requisito.getAreaConocimiento();
 		if (requisito.getTipoRequisito() == TipoRequisito.FORMACION_ACADEMICA) {
-			cumple = formaciones.findByDocenteId(docenteId).orElseGet(List::of).stream()
-					.anyMatch(f -> mismaArea(f.getAreaConocimiento(), requisito.getAreaConocimiento())
-							&& nivel(f.getNivelFormacion()) >= nivel(requisito.getNivelFormacionMinimo()));
-		} else {
-			TipoExperiencia tipo = switch (requisito.getTipoRequisito()) {
-			case EXPERIENCIA_LABORAL -> TipoExperiencia.LABORAL;
-			case EXPERIENCIA_DOCENTE -> TipoExperiencia.DOCENTE;
-			case EXPERIENCIA_INVESTIGATIVA -> TipoExperiencia.INVESTIGATIVA;
-			default -> throw new DatosInvalidosException("Tipo de requisito no evaluable");
-			};
-			List<ExperienciaDocente> registros = experiencias.findByDocenteIdAndTipoExperiencia(docenteId, tipo)
-					.orElseGet(List::of).stream()
-					.filter(e -> mismaArea(e.getAreaConocimiento(), requisito.getAreaConocimiento())).toList();
-			cumple = !registros.isEmpty()
-					&& diasExperiencia(registros, LocalDate.now(clock)) >= requisito.getAniosExperienciaMinima() * 365L;
+			NivelFormacion nivelMinimo = requisito.getNivelFormacionMinimo();
+			boolean cumple = formaciones.findByDocenteId(docente.getId()).orElseGet(List::of).stream()
+					.anyMatch(f -> mismaArea(f.getAreaConocimiento(), area)
+							&& nivel(f.getNivelFormacion()) >= nivel(nivelMinimo));
+			if (!cumple) {
+				String nivelRequerido = nivelMinimo == null ? "" : " con nivel mínimo " + nivelMinimo;
+				throw requisitoIncumplido(requisito, docente, "formación académica en " + area + nivelRequerido);
+			}
+			return;
 		}
-		if (!cumple)
-			throw new AsignacionAcademicaInvalidaException(
-					"El docente no cumple el requisito: " + requisito.getDescripcion());
+
+		TipoExperiencia tipo = switch (requisito.getTipoRequisito()) {
+		case EXPERIENCIA_LABORAL -> TipoExperiencia.LABORAL;
+		case EXPERIENCIA_DOCENTE -> TipoExperiencia.DOCENTE;
+		case EXPERIENCIA_INVESTIGATIVA -> TipoExperiencia.INVESTIGATIVA;
+		default -> throw new DatosInvalidosException("Tipo de requisito no evaluable");
+		};
+		List<ExperienciaDocente> registros = experiencias.findByDocenteIdAndTipoExperiencia(docente.getId(), tipo)
+				.orElseGet(List::of).stream().filter(e -> mismaArea(e.getAreaConocimiento(), area)).toList();
+		int aniosMinimos = requisito.getAniosExperienciaMinima();
+		if (registros.isEmpty() || diasExperiencia(registros, LocalDate.now(clock)) < aniosMinimos * 365L) {
+			String experiencia = "experiencia " + tipo.name().toLowerCase(Locale.ROOT) + " en " + area;
+			String evidencia = aniosMinimos > 0
+					? experiencia + " durante al menos " + aniosMinimos + (aniosMinimos == 1 ? " año" : " años")
+					: "al menos un registro de " + experiencia;
+			throw requisitoIncumplido(requisito, docente, evidencia);
+		}
+	}
+
+	private static AsignacionAcademicaInvalidaException requisitoIncumplido(
+			RequisitoAsignatura requisito, Docente docente, String evidencia) {
+		return new AsignacionAcademicaInvalidaException(
+				"El docente " + docente.getNombre() + " " + docente.getApellido()
+						+ " no cumple el requisito «" + requisito.getDescripcion()
+						+ "». En su ficha debe constar " + evidencia + ".");
 	}
 
 	private static boolean mismaArea(String a, String b) {

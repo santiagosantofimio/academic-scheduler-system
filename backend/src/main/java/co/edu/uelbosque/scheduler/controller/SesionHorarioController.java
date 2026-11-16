@@ -98,6 +98,14 @@ public class SesionHorarioController {
 		return ResponseEntity.status(201).body("SesionHorario registrado");
 	}
 
+	@PostMapping("/grupo/{id}/manual")
+	@Operation(summary = "Registrar sesiones seleccionadas para el grupo en una sola operacion")
+	@ApiResponse(responseCode = "201", description = "Sesiones registradas")
+	public ResponseEntity<Void> registrarSesiones(@PathVariable Long id, @RequestBody List<SesionHorarioDTO> datos) {
+		sesionHorarioSer.registrarSesiones(id, datos);
+		return ResponseEntity.status(201).build();
+	}
+
 	public ResponseEntity<String> crearSesion(Long grupoId, DayOfWeek diaSemana, LocalTime horaInicio,
 			LocalTime horaFin, EstadoSesion estado) {
 		SesionHorarioDTO data = new SesionHorarioDTO(diaSemana, horaInicio, horaFin, estado);

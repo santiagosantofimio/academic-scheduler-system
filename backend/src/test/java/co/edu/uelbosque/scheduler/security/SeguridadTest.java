@@ -1,11 +1,18 @@
 package co.edu.uelbosque.scheduler.security;
 
+import java.time.DayOfWeek;
+import java.time.LocalTime;
+import java.util.List;
+import jakarta.servlet.DispatcherType;
+import jakarta.servlet.RequestDispatcher;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.mock.web.MockServletContext;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.core.userdetails.User;
@@ -18,7 +25,14 @@ import org.springframework.web.context.support.AnnotationConfigWebApplicationCon
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 import org.springframework.web.bind.annotation.*;
 import co.edu.uelbosque.scheduler.controller.SeguridadController;
+import co.edu.uelbosque.scheduler.controller.SesionHorarioController;
+import co.edu.uelbosque.scheduler.dto.SesionHorarioDTO;
+import co.edu.uelbosque.scheduler.entity.EstadoSesion;
+import co.edu.uelbosque.scheduler.service.SesionHorarioService;
 import tools.jackson.databind.json.JsonMapper;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -27,8 +41,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class SeguridadTest {
     private AnnotationConfigWebApplicationContext contexto;
     private MockMvc mvc;
-    @Configuration @EnableWebMvc @Import({SecurityConfig.class,SeguridadController.class,RecursoDePrueba.class})
+    @Configuration @EnableWebMvc @Import({SecurityConfig.class,SeguridadController.class,SesionHorarioController.class,RecursoDePrueba.class})
     static class Contexto {
+        @Bean SesionHorarioService servicioSesiones() {
+            return mock(SesionHorarioService.class);
+        }
         @Bean UserDetailsService usuariosSoloDePrueba(PasswordEncoder encoder) {
             return new InMemoryUserDetailsManager(
                     User.withUsername("admin-prueba").password(encoder.encode("clave-prueba")).roles("ADMINISTRADOR").build(),
@@ -39,8 +56,9 @@ class SeguridadTest {
     @RestController static class RecursoDePrueba {
         @GetMapping("/api/prueba") String leer() { return "ok"; }
         @PostMapping("/api/prueba") String escribir() { return "guardado"; }
-        @GetMapping("/api/sesiones") String sesiones() { return "ok"; }
-        @PostMapping("/api/sesiones") String crearSesion() { return "guardado"; }
+        @RequestMapping("/error") ResponseEntity<String> error() {
+            return ResponseEntity.status(404).body("Ruta no encontrada");
+        }
         @GetMapping("/api/docentes") String docentes() { return "ok"; }
         @GetMapping("/api/usuarios/actual") String actual() { return "ok"; }
         @GetMapping("/api/mi-horario") String miHorario() { return "ok"; }
@@ -68,11 +86,60 @@ class SeguridadTest {
         mvc.perform(post("/api/sesiones").with(httpBasic("docente-prueba","clave-prueba")).with(csrf())).andExpect(status().isForbidden());
     }
     @Test void administradorGestionaPeroNoTieneHorarioPropio() throws Exception {
-        mvc.perform(post("/api/sesiones").with(httpBasic("admin-prueba","clave-prueba")).with(csrf())).andExpect(status().isOk());
+        mvc.perform(post("/api/sesiones").with(httpBasic("admin-prueba", "clave-prueba")).with(csrf())
+                .contentType(MediaType.APPLICATION_JSON).content("""
+                        {"diaSemana":"MONDAY","horaInicio":"08:00","horaFin":"10:00","estado":"PROGRAMADA","grupoId":1}
+                        """))
+                .andExpect(status().isCreated());
         mvc.perform(get("/api/sesiones").with(httpBasic("admin-prueba","clave-prueba"))).andExpect(status().isOk());
         mvc.perform(get("/api/mi-horario").with(httpBasic("admin-prueba","clave-prueba"))).andExpect(status().isForbidden());
         mvc.perform(get("/api/mi-horario")).andExpect(status().isUnauthorized());
         mvc.perform(get("/api/usuarios/actual")).andExpect(status().isUnauthorized());
+    }
+    @Test void registraSesionesManualesConAdministradorYTokenDeSuSesion() throws Exception {
+        var servicio = contexto.getBean(SesionHorarioService.class);
+        var ruta = "/api/sesiones/grupo/1/manual";
+        var cuerpo = """
+                [{"diaSemana":"MONDAY","horaInicio":"08:00","horaFin":"10:00","estado":"PROGRAMADA"},
+                {"diaSemana":"WEDNESDAY","horaInicio":"08:00","horaFin":"10:00","estado":"PROGRAMADA"}]
+                """;
+
+        mvc.perform(post(ruta).with(httpBasic("admin-prueba", "clave-prueba"))
+                .contentType(MediaType.APPLICATION_JSON).content(cuerpo))
+                .andExpect(status().isForbidden());
+        mvc.perform(post(ruta).with(httpBasic("docente-prueba", "clave-prueba")).with(csrf())
+                .contentType(MediaType.APPLICATION_JSON).content(cuerpo))
+                .andExpect(status().isForbidden());
+        verifyNoInteractions(servicio);
+
+        var respuesta = mvc.perform(get("/api/csrf").with(httpBasic("admin-prueba", "clave-prueba")))
+                .andExpect(status().isOk()).andReturn();
+        var token = JsonMapper.builder().build().readTree(respuesta.getResponse().getContentAsString());
+        var sesion = (MockHttpSession) respuesta.getRequest().getSession(false);
+        mvc.perform(post(ruta).with(httpBasic("admin-prueba", "clave-prueba")).session(sesion)
+                .header(token.get("headerName").asString(), token.get("token").asString())
+                .contentType(MediaType.APPLICATION_JSON).content(cuerpo))
+                .andExpect(status().isCreated());
+
+        var horaInicio = LocalTime.of(8, 0);
+        var horaFin = LocalTime.of(10, 0);
+        verify(servicio).registrarSesiones(1L, List.of(
+                new SesionHorarioDTO(DayOfWeek.MONDAY, horaInicio, horaFin, EstadoSesion.PROGRAMADA),
+                new SesionHorarioDTO(DayOfWeek.WEDNESDAY, horaInicio, horaFin, EstadoSesion.PROGRAMADA)));
+    }
+    @Test void permiteElDespachoInternoDeErrorSinAutorizarSolicitudesDirectas() throws Exception {
+        mvc.perform(post("/error")
+                .requestAttr(RequestDispatcher.ERROR_REQUEST_URI, "/api/sesiones/grupo/1/manual")
+                .with(request -> {
+                    request.setDispatcherType(DispatcherType.ERROR);
+                    return request;
+                })).andExpect(status().isNotFound()).andExpect(content().string("Ruta no encontrada"));
+        mvc.perform(get("/error").with(httpBasic("admin-prueba", "clave-prueba")))
+                .andExpect(status().isForbidden());
+        mvc.perform(get("/api/sesiones").with(httpBasic("docente-prueba", "clave-prueba")).with(request -> {
+            request.setDispatcherType(DispatcherType.ERROR);
+            return request;
+        })).andExpect(status().isForbidden());
     }
     @Test void laAplicacionWebNoRecibeRetoQueAbraElDialogoDelNavegador() throws Exception {
         mvc.perform(get("/api/sesiones").with(httpBasic("admin-prueba","incorrecta")).header("X-Requested-With","XMLHttpRequest"))

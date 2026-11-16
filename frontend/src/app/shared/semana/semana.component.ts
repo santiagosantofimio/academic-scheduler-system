@@ -7,6 +7,7 @@ import {
   minutos,
   hora,
 } from '../../interfaces/api.models';
+import { numeroGrupoVisible } from '../grupo';
 interface SesionVisual {
   sesion: SesionHorarioDTO;
   top: number;
@@ -14,7 +15,7 @@ interface SesionVisual {
   left: number;
   width: number;
   title: string;
-  subtitle: string;
+  numeroGrupo: string;
   docente: string;
   color: number;
 }
@@ -23,6 +24,11 @@ export interface MovimientoSesion {
   diaSemana: DiaSemana;
   horaInicio: string;
   horaFin: string;
+}
+interface DestinoVisual {
+  movimiento: MovimientoSesion;
+  top: number;
+  height: number;
 }
 @Component({ selector: 'app-semana', standalone: false, templateUrl: './semana.component.html' })
 export class SemanaComponent implements OnChanges {
@@ -38,6 +44,8 @@ export class SemanaComponent implements OnChanges {
   end = 0;
   ticks: number[] = [];
   days: SesionVisual[][] = [];
+  dropPreview: DestinoVisual | null = null;
+  private draggedSession: { id: number; grabOffset: number } | null = null;
   ngOnChanges(): void {
     const config = this.data?.configuracion;
     const starts = this.sessions.map((s) => minutos(s.horaInicio));
@@ -79,7 +87,7 @@ export class SemanaComponent implements OnChanges {
           left: (lane / laneEnds.length) * 100,
           width: 100 / laneEnds.length,
           title: subject?.nombre || `Grupo #${s.grupoId}`,
-          subtitle: `Grupo ${group?.numeroGrupo || s.grupoId}`,
+          numeroGrupo: numeroGrupoVisible(group?.numeroGrupo || s.grupoId),
           docente: teacher ? `${teacher.nombre} ${teacher.apellido}` : 'Sin docente asignado',
           color: (group?.asignaturaId || s.grupoId) % 4,
         };
@@ -114,32 +122,89 @@ export class SemanaComponent implements OnChanges {
     return item.sesion.idSesion!;
   }
   drag(event: DragEvent, session: SesionHorarioDTO): void {
-    if (this.editable && session.idSesion)
-      event.dataTransfer?.setData('text/plain', String(session.idSesion));
+    this.endDrag();
+    const transfer = event.dataTransfer;
+    if (!this.editable || session.idSesion == null || !transfer) {
+      event.preventDefault();
+      return;
+    }
+    const source = event.currentTarget as HTMLElement;
+    this.draggedSession = {
+      id: session.idSesion,
+      grabOffset: Math.max(0, event.clientY - source.getBoundingClientRect().top),
+    };
+    transfer.effectAllowed = 'move';
+    transfer.setData('application/x-scheduler-session', String(session.idSesion));
   }
-  allowDrop(event: DragEvent): void {
-    if (this.editable) event.preventDefault();
+  allowDrop(event: DragEvent, dia: DiaSemana): void {
+    this.dropPreview = this.destino(event, dia);
+    if (event.dataTransfer) event.dataTransfer.dropEffect = this.dropPreview ? 'move' : 'none';
+    if (this.dropPreview) event.preventDefault();
+  }
+  leaveDrop(event: DragEvent, dia: DiaSemana): void {
+    const column = event.currentTarget as HTMLElement;
+    if (
+      this.dropPreview?.movimiento.diaSemana === dia &&
+      !column.contains(event.relatedTarget as Node | null)
+    ) {
+      this.dropPreview = null;
+    }
+  }
+  endDrag(): void {
+    this.draggedSession = null;
+    this.dropPreview = null;
   }
   drop(event: DragEvent, dia: DiaSemana): void {
-    if (!this.editable) return;
+    const destino = this.destino(event, dia);
+    this.endDrag();
+    if (!destino) return;
     event.preventDefault();
-    const id = Number(event.dataTransfer?.getData('text/plain'));
-    const session = this.sessions.find((s) => s.idSesion === id);
-    if (!session) return;
-    const element = event.currentTarget as HTMLElement;
-    const duration = minutos(session.horaFin) - minutos(session.horaInicio);
-    const inicio = Math.max(
-      this.start,
-      Math.min(
-        this.end - duration,
-        Math.round((event.clientY - element.getBoundingClientRect().top) / this.scale) + this.start,
-      ),
-    );
-    this.moveSession.emit({
-      sesion: session,
-      diaSemana: dia,
-      horaInicio: hora(inicio),
-      horaFin: hora(inicio + duration),
-    });
+    this.moveSession.emit(destino.movimiento);
+  }
+  private destino(event: DragEvent, dia: DiaSemana): DestinoVisual | null {
+    const drag = this.draggedSession;
+    if (!this.editable || !drag) return null;
+    const session = this.sessions.find((s) => s.idSesion === drag.id);
+    if (!session) return null;
+
+    const column = event.currentTarget as HTMLElement;
+    const offset = event.clientY - column.getBoundingClientRect().top - drag.grabOffset;
+    const dropTop = this.start + Math.round((offset / this.scale) * 60) / 60;
+    const config = this.data?.configuracion;
+    const sabado = dia === 'SATURDAY';
+    let apertura = config
+      ? minutos(sabado ? config.horaInicioSabado : config.horaInicioSemana)
+      : this.start;
+    let cierre = config
+      ? minutos(sabado ? config.horaFinSabado : config.horaFinSemana)
+      : this.end;
+    if (config?.horaInicioDescanso && config.horaFinDescanso) {
+      const finDescanso = minutos(config.horaFinDescanso);
+      if (dropTop >= finDescanso) apertura = Math.max(apertura, finDescanso);
+      else cierre = Math.min(cierre, minutos(config.horaInicioDescanso));
+    }
+    if (dropTop < apertura || dropTop >= cierre) return null;
+
+    const inicio = Math.max(apertura, Math.floor(dropTop / 60) * 60);
+    const duracion = Math.round((minutos(session.horaFin) - minutos(session.horaInicio)) * 60) / 60;
+    const fin = inicio + duracion;
+    if (duracion <= 0 || fin > cierre) return null;
+
+    return {
+      movimiento: {
+        sesion: session,
+        diaSemana: dia,
+        horaInicio: this.horaDestino(inicio),
+        horaFin: this.horaDestino(fin),
+      },
+      top: (inicio - this.start) * this.scale,
+      height: duracion * this.scale,
+    };
+  }
+  private horaDestino(minuto: number): string {
+    const totalSegundos = Math.round(minuto * 60);
+    const base = hora(Math.floor(totalSegundos / 60));
+    const segundos = totalSegundos % 60;
+    return segundos ? base + ':' + String(segundos).padStart(2, '0') : base;
   }
 }

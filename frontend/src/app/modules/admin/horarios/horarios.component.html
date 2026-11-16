@@ -65,9 +65,14 @@
     </div>
     <select aria-label="Filtrar por grupo" [(ngModel)]="groupFilter">
       <option [ngValue]="0">Todos los grupos</option>
-      <option *ngFor="let g of data.grupos" [ngValue]="g.idGrupo">
-        {{ grupo(g.idGrupo!) }}
-      </option></select
+      <optgroup
+        *ngFor="let bloque of gruposPorSemestre"
+        [label]="bloque.semestre === null ? 'Sin semestre' : 'Semestre ' + bloque.semestre"
+      >
+        <option *ngFor="let g of bloque.grupos" [ngValue]="g.idGrupo">
+          {{ nombreGrupo(g.idGrupo!) }}
+        </option>
+      </optgroup></select
     ><select aria-label="Filtrar por docente" [(ngModel)]="teacherFilter">
       <option [ngValue]="0">Todos los docentes</option>
       <option *ngFor="let d of data.docentes" [ngValue]="d.id">
@@ -114,7 +119,10 @@
         </thead>
         <tbody>
           <tr *ngFor="let s of filtered">
-            <td class="table-name">{{ grupo(s.grupoId) }}</td>
+            <td>
+              @let detalle = grupo(s.grupoId);
+              {{ detalle.asignatura }} · Grupo <strong>{{ detalle.numero }}</strong>
+            </td>
             <td>{{ docente(s.grupoId) }}</td>
             <td>{{ nombreDia(s.diaSemana) }}</td>
             <td class="nowrap">{{ s.horaInicio.slice(0, 5) }} - {{ s.horaFin.slice(0, 5) }}</td>
@@ -197,10 +205,15 @@
     <label for="generar-grupo">Grupo con docente asignado</label
     ><select id="generar-grupo" [(ngModel)]="generationGroup">
       <option [ngValue]="null">Selecciona un grupo</option>
-      <option *ngFor="let g of eligibleGroups" [ngValue]="g.idGrupo">
-        {{ grupo(g.idGrupo!) }}
-      </option></select
-    ><small class="hint" *ngIf="!eligibleGroups.length"
+      <optgroup
+        *ngFor="let bloque of gruposParaGenerar"
+        [label]="bloque.semestre === null ? 'Sin semestre' : 'Semestre ' + bloque.semestre"
+      >
+        <option *ngFor="let g of bloque.grupos" [ngValue]="g.idGrupo">
+          {{ nombreGrupo(g.idGrupo!) }}
+        </option>
+      </optgroup></select
+    ><small class="hint" *ngIf="!gruposParaGenerar.length"
       >No hay grupos activos con docente. Revisa la gestión de grupos.</small
     >
   </div>
@@ -225,63 +238,81 @@
 <app-dialog
   *ngIf="editorOpen"
   [title]="editing ? 'Ajustar sesión' : 'Agregar sesión'"
+  [wide]="sesionesFormulario.length > 1"
   [busy]="busy"
   (close)="editorOpen = false"
-  ><app-feedback [message]="modalError" kind="error"></app-feedback>
+>
+  <app-feedback [message]="modalError" kind="error"></app-feedback>
   <form [formGroup]="form" (ngSubmit)="save()" novalidate>
-    <div class="form-grid">
-      <div class="field field-full">
-        <label for="sesion-grupo">Grupo</label
-        ><select id="sesion-grupo" formControlName="grupoId" [attr.aria-readonly]="!!editing">
-          <option [ngValue]="null">Selecciona un grupo</option>
-          <option
-            *ngFor="let g of data?.grupos"
-            [ngValue]="g.idGrupo"
-            [disabled]="!!editing && g.idGrupo !== editing.grupoId"
-          >
-            {{ grupo(g.idGrupo!) }}
-          </option></select
-        ><small class="hint" *ngIf="editing">Una sesión existente conserva su grupo.</small
-        ><app-field-error [control]="form.controls.grupoId"></app-field-error>
-      </div>
-      <div class="field">
-        <label for="sesion-dia">Día de la semana</label
-        ><select id="sesion-dia" formControlName="diaSemana">
-          <option *ngFor="let d of dias" [value]="d.valor">{{ d.nombre }}</option>
-        </select>
-      </div>
-      <div class="field">
-        <label for="sesion-estado">Estado</label
-        ><select id="sesion-estado" formControlName="estado">
-          <option value="PROGRAMADA">Programada</option>
-          <option value="CANCELADA">Cancelada</option>
-        </select>
-      </div>
-      <div class="field">
-        <label for="sesion-inicio">Hora inicial</label
-        ><input
-          id="sesion-inicio"
-          type="time"
-          step="1"
-          formControlName="horaInicio"
-          required
-        /><app-field-error [control]="form.controls.horaInicio"></app-field-error>
-      </div>
-      <div class="field">
-        <label for="sesion-fin">Hora final</label
-        ><input
-          id="sesion-fin"
-          type="time"
-          step="1"
-          formControlName="horaFin"
-          required
-        /><app-field-error [control]="form.controls.horaFin"></app-field-error>
-      </div>
+    <div class="field">
+      <label for="sesion-grupo">Grupo</label>
+      <select id="sesion-grupo" formControlName="grupoId">
+        <option [ngValue]="null">Selecciona un grupo</option>
+        <option *ngFor="let g of data?.grupos" [ngValue]="g.idGrupo">
+          {{ nombreGrupo(g.idGrupo!) }}
+        </option>
+      </select>
+      <small class="hint" *ngIf="editing">Una sesión existente conserva su grupo.</small>
+      <app-field-error [control]="form.controls.grupoId"></app-field-error>
     </div>
-    <p class="field-error" *ngIf="form.errors?.['horas'] && form.touched">
-      La hora final debe ser posterior a la inicial.
+
+    <p class="hint" *ngIf="!editing && form.controls.grupoId.value && !sesionesFormulario.length">
+      El grupo ya tiene todas sus sesiones semanales programadas.
     </p>
-    <p class="hint">
+
+    <ng-container formArrayName="sesiones">
+      <fieldset
+        *ngFor="let sesion of sesionesFormulario.controls; let i = index"
+        class="session-fields"
+        [formGroupName]="i"
+      >
+        <legend *ngIf="sesionesFormulario.length > 1">Sesión {{ i + 1 }}</legend>
+        <div class="form-grid" [class.batch-session-grid]="sesionesFormulario.length > 1">
+          <div class="field">
+            <label [for]="'sesion-dia-' + i">Día de la semana</label>
+            <select [id]="'sesion-dia-' + i" formControlName="diaSemana">
+              <option [ngValue]="null" disabled>Selecciona un día</option>
+              <option *ngFor="let d of dias" [ngValue]="d.valor">{{ d.nombre }}</option>
+            </select>
+            <app-field-error [control]="sesion.controls.diaSemana"></app-field-error>
+          </div>
+          <div class="field">
+            <label [for]="'sesion-estado-' + i">Estado</label>
+            <select [id]="'sesion-estado-' + i" formControlName="estado">
+              <option value="PROGRAMADA">Programada</option>
+              <option value="CANCELADA">Cancelada</option>
+            </select>
+          </div>
+          <div class="field">
+            <label [for]="'sesion-inicio-' + i">Hora inicial</label>
+            <input
+              [id]="'sesion-inicio-' + i"
+              type="time"
+              step="1"
+              formControlName="horaInicio"
+              required
+            />
+            <app-field-error [control]="sesion.controls.horaInicio"></app-field-error>
+          </div>
+          <div class="field">
+            <label [for]="'sesion-fin-' + i">Hora final</label>
+            <input
+              [id]="'sesion-fin-' + i"
+              type="time"
+              step="1"
+              formControlName="horaFin"
+              required
+            />
+            <app-field-error [control]="sesion.controls.horaFin"></app-field-error>
+          </div>
+        </div>
+        <p class="field-error" *ngIf="sesion.hasError('timeOrder') && sesion.touched">
+          La hora final debe ser posterior a la inicial.
+        </p>
+      </fieldset>
+    </ng-container>
+
+    <p class="hint" *ngIf="sesionesFormulario.length">
       El servidor verificará la franja, la duración, los cruces y la carga del docente antes de
       guardar.
     </p>
@@ -292,18 +323,21 @@
         [disabled]="busy"
         (click)="editorOpen = false"
       >
-        Cancelar</button
-      ><button type="submit" class="button button-primary" [disabled]="busy">
-        <span *ngIf="busy" class="spinner"></span>{{ busy ? 'Guardando…' : 'Guardar ajuste' }}
+        Cancelar
+      </button>
+      <button type="submit" class="button button-primary" [disabled]="busy || !sesionesFormulario.length">
+        <span *ngIf="busy" class="spinner"></span>
+        {{ busy ? 'Guardando…' : editing ? 'Guardar ajuste' : 'Guardar sesiones' }}
       </button>
     </div>
-  </form></app-dialog
->
+  </form>
+</app-dialog>
 <app-dialog *ngIf="deleting" title="Eliminar sesión" [busy]="busy" (close)="deleting = null"
   ><p>
     Se eliminará la sesión de {{ nombreDia(deleting.diaSemana).toLowerCase() }} de
     {{ deleting.horaInicio.slice(0, 5) }} a {{ deleting.horaFin.slice(0, 5) }} para
-    {{ grupo(deleting.grupoId) }}.
+    @let detalle = grupo(deleting.grupoId);
+    {{ detalle.asignatura }} · Grupo <strong>{{ detalle.numero }}</strong>.
   </p>
   <app-feedback [message]="modalError" kind="error"></app-feedback>
   <div class="dialog-actions">

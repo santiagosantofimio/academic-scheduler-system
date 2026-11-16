@@ -111,7 +111,7 @@
             Ninguna clase programada cae en esta franja.
           </p>
           <div class="affected-item" *ngFor="let c of afectadas">
-            <strong>{{ c.asignatura }}, grupo {{ c.grupo }}</strong>
+            <strong>{{ c.asignatura }}, grupo {{ numeroGrupoVisible(c.grupo) }}</strong>
             <span class="muted">Hoy: {{ franja(c.sesion) }}</span>
             <ng-container *ngIf="c.alternativas.length; else sinFranjas">
               <span>Franjas válidas que no mueven las demás clases:</span>

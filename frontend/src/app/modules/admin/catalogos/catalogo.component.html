@@ -46,7 +46,12 @@
               class="badge"
               [class.badge-muted]="inactive(record)"
               >{{ display(record, column.key) }}</span
-            ><ng-template #text>{{ display(record, column.key) }}</ng-template>
+            ><ng-template #text>
+              <strong *ngIf="column.key === 'numeroGrupo'; else valor">{{
+                display(record, column.key)
+              }}</strong>
+              <ng-template #valor>{{ display(record, column.key) }}</ng-template>
+            </ng-template>
           </td>
           <td>
             <div class="row-actions">

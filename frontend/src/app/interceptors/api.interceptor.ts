@@ -10,6 +10,7 @@ import {
 import { Router } from '@angular/router';
 import { Observable, catchError, filter, map, switchMap, throwError } from 'rxjs';
 import { AuthService } from '../services/auth.service';
+import { requiereRenovarCsrf } from '../services/api-error';
 import { environment } from '../../environments/environment';
 import { TokenCsrf } from '../interfaces/api.models';
 
@@ -39,14 +40,13 @@ export class ApiInterceptor implements HttpInterceptor {
           escritura &&
           auth.authorizationHeader &&
           error instanceof HttpErrorResponse &&
-          error.status === 403
+          requiereRenovarCsrf(error)
         )
           return this.nuevoToken(base, next).pipe(
             switchMap((csrf) => {
               auth.renovarCsrf(csrf);
               return enviar();
             }),
-            catchError(() => throwError(() => error)),
           );
         return throwError(() => error);
       }),

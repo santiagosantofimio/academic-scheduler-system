@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import { DatosPlaneacion, DIAS, minutos } from '../interfaces/api.models';
+import { detalleGrupo } from '../shared/grupo';
 export interface ObservacionHorario {
   title: string;
   detail: string;
@@ -12,9 +13,8 @@ export class ValidacionHorarioService {
     const sessions = data.sesiones.filter((s) => s.estado === 'PROGRAMADA');
     const config = data.configuracion;
     const groupName = (id: number): string => {
-      const g = data.grupos.find((x) => x.idGrupo === id);
-      const a = data.asignaturas.find((x) => x.idAsginatura === g?.asignaturaId);
-      return `${a?.nombre || 'Asignatura'} · Grupo ${g?.numeroGrupo || id}`;
+      const { asignatura, numero } = detalleGrupo(data, id);
+      return `${asignatura} · Grupo ${numero}`;
     };
     for (let i = 0; i < sessions.length; i++) {
       const a = sessions[i];

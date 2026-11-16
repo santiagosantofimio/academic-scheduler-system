@@ -12,17 +12,42 @@ describe('Formularios de registro', () => {
     expect(component.form.value.nombre).toBe('Nombre conservado');
     component.ngOnDestroy();
   });
-  it('exige nivel de formacion solo para requisitos de formacion', () => {
+  it('muestra y guarda solo el mínimo pertinente al tipo de requisito', () => {
     const component = new RegistroFormComponent(new FormBuilder());
     component.fields = [
       { key: 'tipoRequisito', label: 'Tipo', type: 'select', required: true },
-      { key: 'nivelFormacionMinimo', label: 'Nivel', type: 'select' },
+      { key: 'nivelFormacionMinimo', label: 'Nivel', type: 'select', required: true },
+      { key: 'aniosExperienciaMinima', label: 'Años', type: 'number', required: true, min: 0 },
     ];
+    component.value = { tipoRequisito: 'FORMACION_ACADEMICA', aniosExperienciaMinima: 1 };
     component.ngOnChanges({ fields: new SimpleChange(null, component.fields, true) });
-    component.form.patchValue({ tipoRequisito: 'FORMACION_ACADEMICA' });
+    const guardar = spyOn(component.save, 'emit');
+
+    expect(component.camposVisibles.map(({ key }) => key)).toEqual([
+      'tipoRequisito',
+      'nivelFormacionMinimo',
+    ]);
     expect(component.form.get('nivelFormacionMinimo')?.invalid).toBeTrue();
-    component.form.patchValue({ tipoRequisito: 'EXPERIENCIA_DOCENTE' });
-    expect(component.form.get('nivelFormacionMinimo')?.valid).toBeTrue();
+    component.form.patchValue({ nivelFormacionMinimo: 'PREGRADO' });
+    component.enviar();
+    expect(guardar).toHaveBeenCalledOnceWith({
+      tipoRequisito: 'FORMACION_ACADEMICA',
+      nivelFormacionMinimo: 'PREGRADO',
+      aniosExperienciaMinima: 0,
+    });
+
+    guardar.calls.reset();
+    component.form.patchValue({ tipoRequisito: 'EXPERIENCIA_DOCENTE', aniosExperienciaMinima: 2 });
+    expect(component.camposVisibles.map(({ key }) => key)).toEqual([
+      'tipoRequisito',
+      'aniosExperienciaMinima',
+    ]);
+    component.enviar();
+    expect(guardar).toHaveBeenCalledOnceWith({
+      tipoRequisito: 'EXPERIENCIA_DOCENTE',
+      nivelFormacionMinimo: null,
+      aniosExperienciaMinima: 2,
+    });
     component.ngOnDestroy();
   });
   it('exige que la hora final sea posterior a la inicial', () => {

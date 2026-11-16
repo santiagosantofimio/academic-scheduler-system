@@ -5,6 +5,7 @@ import { AcademicoService } from '../../../services/academico.service';
 import { RecursoApi } from '../../../services/recurso-api';
 import { mensajeError } from '../../../services/api-error';
 import { etiqueta } from '../../../interfaces/api.models';
+import { numeroGrupoVisible } from '../../../shared/grupo';
 import { Campo } from '../../../shared/registro-form/registro-form.component';
 import {
   CATALOGOS,
@@ -85,7 +86,7 @@ export class CatalogoComponent implements OnInit, OnDestroy {
     const id = record[key];
     if (key === 'planEstudiosId') {
       const p = this.refs.planes.find((x) => x.idPlan === id);
-      return p ? `${p.nombrePrograma} · ${p.versionPlan}` : `Plan #${id}`;
+      return p?.codigoPrograma ?? `Plan #${id}`;
     }
     if (key === 'asignaturaId') {
       const a = this.refs.asignaturas.find((x) => x.idAsginatura === id);
@@ -96,7 +97,8 @@ export class CatalogoComponent implements OnInit, OnDestroy {
       return d ? `${d.nombre} ${d.apellido}` : id ? `Docente #${id}` : 'Sin asignar';
     }
     if (key === 'estado' || key === 'tipoRequisito') return etiqueta(id);
-    return id === null || id === undefined ? '-' : String(id);
+    if (id === null || id === undefined) return '-';
+    return key === 'numeroGrupo' ? numeroGrupoVisible(String(id)) : String(id);
   }
   inactive(record: Record<string, unknown>): boolean {
     return record['estado'] === false || record['estado'] === 'INACTIVO';
