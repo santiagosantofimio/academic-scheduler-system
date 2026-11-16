@@ -75,6 +75,10 @@ docker compose down -v
 docker compose up -d
 ```
 
+## Registro de administradores
+
+En la pantalla de ingreso, el enlace "¿No tienes una cuenta de administrador?" abre el formulario de registro. Solo acepta correos `@unbosque.edu.co` (se cambia con `SCHEDULER_REGISTRO_DOMINIO`). Si se define `SCHEDULER_REGISTRO_CODIGO`, el formulario pide ese código para crear la cuenta; sin él, cualquiera con un correo institucional puede registrarse como administrador.
+
 ## Pruebas
 
 ```bash

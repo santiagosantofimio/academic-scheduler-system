@@ -19,10 +19,11 @@ public class SecurityConfig {
 
 	@Bean
 	public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-		http.authorizeHttpRequests(auth -> auth
+		http.csrf(csrf -> csrf.ignoringRequestMatchers("/api/registro/administrador")).authorizeHttpRequests(auth -> auth
 				.requestMatchers("/actuator/health", "/actuator/info", "/v3/api-docs/**", "/swagger-ui/**",
 						"/swagger-ui.html")
-				.permitAll().requestMatchers("/api/csrf", "/api/usuarios/actual").authenticated()
+				.permitAll().requestMatchers("/api/registro/administrador").permitAll()
+				.requestMatchers("/api/csrf", "/api/usuarios/actual").authenticated()
 				.requestMatchers(HttpMethod.GET, "/api/mi-horario", "/api/mi-horario/**").hasRole("DOCENTE")
 				.requestMatchers("/api/**").hasRole("ADMINISTRADOR")
 				.anyRequest().denyAll())

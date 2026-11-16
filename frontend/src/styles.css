@@ -1803,7 +1803,33 @@ a.table-name:hover {
   object-fit: contain;
 }
 .brand-logo--login {
-  width: 168px;
+  width: 260px;
+}
+.registro-enlace {
+  margin-top: 18px;
+  font-size: 14px;
+  color: var(--text-2);
+  text-align: center;
+}
+.registro-enlace a {
+  font-weight: 600;
+  color: var(--accent, #1f6f6c);
+}
+.login-form-wrap--registro {
+  max-width: 520px;
+}
+.registro-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 16px;
+}
+.registro-ver {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px;
+  margin: -6px 0 18px;
+  color: var(--text-2);
 }
 .brand-logo--sidebar {
   width: 138px;
@@ -1923,6 +1949,12 @@ a.table-name:hover {
   }
 }
 @media (max-width: 767px) {
+  .registro-grid {
+    grid-template-columns: 1fr;
+  }
+  .brand-logo--login {
+    width: 190px;
+  }
   .login-page {
     display: flex;
     flex-direction: column;

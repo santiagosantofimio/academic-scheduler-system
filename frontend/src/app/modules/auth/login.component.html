@@ -8,9 +8,6 @@
         Organiza docentes, grupos y sesiones en un horario semanal sin cruces.
       </p>
     </div>
-    <footer class="story-footer">
-      <span class="institution-line"></span>Universidad El Bosque
-    </footer>
   </section>
   <section class="login-access" aria-labelledby="login-title">
     <div class="login-form-wrap">
@@ -66,6 +63,10 @@
           }}<app-icon *ngIf="!busy" name="arrow"></app-icon>
         </button>
       </form>
+      <p class="registro-enlace">
+        ¿No tienes una cuenta de administrador?
+        <a routerLink="/ingresar/registro">Crea una aquí</a>
+      </p>
       <div class="login-note">
         <app-icon name="lock"></app-icon>
         <p>
@@ -74,6 +75,5 @@
         </p>
       </div>
     </div>
-    <footer class="login-footer">SIS GEN <span>Ingeniería de Sistemas</span></footer>
   </section>
 </main>
