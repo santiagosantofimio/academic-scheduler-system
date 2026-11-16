@@ -121,3 +121,89 @@ INSERT INTO grupo (id_grupo, numero_grupo, estado, cupo_esperado, asignatura_id,
 SELECT 900007, '01', 'ACTIVO', 25, a.id_asginatura, NULL
 FROM asignatura a WHERE a.codigo = 'IS407'
 ON DUPLICATE KEY UPDATE grupo.id_grupo = grupo.id_grupo;
+
+INSERT INTO usuario (id, nombre, apellido, numero_documento, correo_institucional, contrasenia, estado) VALUES
+    (800005, 'Mariana', 'Gómez', '1050505050', 'mgomez@unbosque.edu.co', '{bcrypt}$2y$10$LQGBAo/uWk1RIW2N34/yN.vTCl1oFjZpTYCeMM91wO23te4DQsfHq', TRUE),
+    (800006, 'Julián', 'Herrera', '1060606060', 'jherrera@unbosque.edu.co', '{bcrypt}$2y$10$LQGBAo/uWk1RIW2N34/yN.vTCl1oFjZpTYCeMM91wO23te4DQsfHq', TRUE),
+    (800007, 'Natalia', 'Pérez', '1070707070', 'nperez@unbosque.edu.co', '{bcrypt}$2y$10$LQGBAo/uWk1RIW2N34/yN.vTCl1oFjZpTYCeMM91wO23te4DQsfHq', TRUE),
+    (800008, 'Sergio', 'Ramírez', '1080808080', 'sramirez@unbosque.edu.co', '{bcrypt}$2y$10$LQGBAo/uWk1RIW2N34/yN.vTCl1oFjZpTYCeMM91wO23te4DQsfHq', TRUE),
+    (800009, 'Paola', 'Vargas', '1090909090', 'pvargas@unbosque.edu.co', '{bcrypt}$2y$10$LQGBAo/uWk1RIW2N34/yN.vTCl1oFjZpTYCeMM91wO23te4DQsfHq', TRUE),
+    (800010, 'Diego', 'Moreno', '1101010101', 'dmoreno@unbosque.edu.co', '{bcrypt}$2y$10$LQGBAo/uWk1RIW2N34/yN.vTCl1oFjZpTYCeMM91wO23te4DQsfHq', TRUE),
+    (800011, 'Carolina', 'Suárez', '1111111111', 'csuarez@unbosque.edu.co', '{bcrypt}$2y$10$LQGBAo/uWk1RIW2N34/yN.vTCl1oFjZpTYCeMM91wO23te4DQsfHq', TRUE),
+    (800012, 'Ricardo', 'León', '1121212121', 'rleon@unbosque.edu.co', '{bcrypt}$2y$10$LQGBAo/uWk1RIW2N34/yN.vTCl1oFjZpTYCeMM91wO23te4DQsfHq', TRUE)
+ON DUPLICATE KEY UPDATE usuario.id = usuario.id;
+
+INSERT INTO docente (id, tipo_vinculacion, escalafon, especialidad, horas_maximas_docencia_semanal)
+SELECT u.id, d.vinculacion, d.escalafon, d.especialidad, d.horas
+FROM (VALUES
+    ROW(800005, 'TIEMPO_COMPLETO', 'Asociado', 'Ciencias básicas', 20),
+    ROW(800006, 'TIEMPO_COMPLETO', 'Asistente', 'Física', 20),
+    ROW(800007, 'TIEMPO_COMPLETO', 'Asociado', 'Humanidades e idiomas', 20),
+    ROW(800008, 'TIEMPO_COMPLETO', 'Titular', 'Ingeniería de software', 20),
+    ROW(800009, 'TIEMPO_COMPLETO', 'Asociado', 'Bases de datos', 20),
+    ROW(800010, 'TIEMPO_COMPLETO', 'Asistente', 'Infraestructura y seguridad', 20),
+    ROW(800011, 'TIEMPO_COMPLETO', 'Asociado', 'Gestión de proyectos', 20),
+    ROW(800012, 'MEDIO_TIEMPO', 'Asistente', 'Electivas y emprendimiento', 12)
+) AS d (id, vinculacion, escalafon, especialidad, horas)
+JOIN usuario u ON u.id = d.id
+ON DUPLICATE KEY UPDATE docente.id = docente.id;
+
+INSERT INTO grupo (id_grupo, numero_grupo, estado, cupo_esperado, asignatura_id, docente_id)
+SELECT d.id, '01', 'ACTIVO', 30, a.id_asginatura, o.id
+FROM (VALUES
+    ROW(800008, 'IS106', '1080808080'),
+    ROW(800009, 'IS206', '1080808080'),
+    ROW(800010, 'IS305', '1080808080'),
+    ROW(800011, 'IS306', '1080808080'),
+    ROW(800012, 'IS404', '1080808080'),
+    ROW(800013, 'IS406', '1080808080'),
+    ROW(800014, 'IS504', '1080808080'),
+    ROW(800015, 'IS505', '1090909090'),
+    ROW(800016, 'IS602', '1090909090'),
+    ROW(800017, 'IS603', '1090909090'),
+    ROW(800018, 'IS604', '1090909090'),
+    ROW(800019, 'IS605', '1090909090'),
+    ROW(800020, 'IS701', '1090909090'),
+    ROW(800021, 'IS702', '1090909090'),
+    ROW(800022, 'IS803', '1101010101'),
+    ROW(800023, 'IS102', '1050505050'),
+    ROW(800024, 'IS103', '1050505050'),
+    ROW(800025, 'IS104', '1050505050'),
+    ROW(800026, 'IS201', '1050505050'),
+    ROW(800027, 'IS203', '1050505050'),
+    ROW(800028, 'IS204', '1050505050'),
+    ROW(800029, 'IS205', '1050505050'),
+    ROW(800030, 'IS301', '1050505050'),
+    ROW(800031, 'IS302', '1050505050'),
+    ROW(800032, 'IS303', '1060606060'),
+    ROW(800033, 'IS304', '1060606060'),
+    ROW(800034, 'IS401', '1060606060'),
+    ROW(800035, 'IS402', '1060606060'),
+    ROW(800036, 'IS501', '1060606060'),
+    ROW(800037, 'IS502', '1060606060'),
+    ROW(800038, 'IS601', '1060606060'),
+    ROW(800039, 'IS801', '1060606060'),
+    ROW(800040, 'IS802', '1060606060'),
+    ROW(800041, 'IS207', '1121212121'),
+    ROW(800042, 'IS307', '1121212121'),
+    ROW(800043, 'IS507', '1121212121'),
+    ROW(800044, 'IS706', '1121212121'),
+    ROW(800045, 'IS707', '1121212121'),
+    ROW(800046, 'IS806', '1121212121'),
+    ROW(800047, 'IS807', '1060606060'),
+    ROW(800048, 'IS902', '1070707070'),
+    ROW(800049, 'IS903', '1070707070'),
+    ROW(800050, 'IS506', '1111111111'),
+    ROW(800051, 'IS606', '1111111111'),
+    ROW(800052, 'IS607', '1111111111'),
+    ROW(800053, 'IS703', '1111111111'),
+    ROW(800054, 'IS704', '1111111111'),
+    ROW(800055, 'IS705', '1111111111'),
+    ROW(800056, 'IS804', '1111111111'),
+    ROW(800057, 'IS805', '1111111111'),
+    ROW(800058, 'IS901', '1111111111')
+) AS d (id, codigo, documento)
+JOIN asignatura a ON a.codigo = d.codigo
+JOIN usuario u ON u.numero_documento = d.documento
+JOIN docente o ON o.id = u.id
+ON DUPLICATE KEY UPDATE grupo.id_grupo = grupo.id_grupo;

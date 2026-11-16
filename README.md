@@ -43,16 +43,16 @@ Detalle técnico en [backend/IMPLEMENTACION.md](backend/IMPLEMENTACION.md) y [fr
    cd backend
    SCHEDULER_ADMIN_CORREO=admin@unbosque.edu.co \
    SCHEDULER_ADMIN_CONTRASENIA='tu-contraseña' \
-   ./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
+   ./mvnw spring-boot:run
    ```
    En PowerShell:
    ```powershell
    cd backend
    $env:SCHEDULER_ADMIN_CORREO='admin@unbosque.edu.co'
    $env:SCHEDULER_ADMIN_CONTRASENIA='tu-contraseña'
-   .\mvnw spring-boot:run '-Dspring-boot.run.profiles=dev'
+   .\mvnw spring-boot:run
    ```
-   El perfil `dev` carga datos de demostración: el plan de estudios 2025 de Ingeniería de Sistemas (58 asignaturas), configuración, docentes, disponibilidad y grupos. Sin perfil solo se crea el esquema. Las migraciones se aplican solas al arrancar.
+   Al arrancar se aplican las migraciones y se cargan los datos base: el plan de estudios 2025 de Ingeniería de Sistemas (58 asignaturas), la configuración, 12 docentes y un grupo por asignatura. Esos datos solo se insertan si no existen, así que reiniciar o actualizar el aplicativo no borra ni sobrescribe lo que se haya registrado. La base vive en el volumen `mysql_data` de Docker y solo se borra con `docker compose down -v`.
 
    Health check: `curl http://localhost:8080/actuator/health`. Swagger UI: `http://localhost:8080/swagger-ui/index.html`.
 3. Frontend (puerto 4200):
