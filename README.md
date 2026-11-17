@@ -75,6 +75,37 @@ docker compose down -v
 docker compose up -d
 ```
 
+## Sistema completo en Docker
+
+Levanta la base de datos, el backend y el frontend con un solo comando. Solo se necesita Docker Desktop abierto; no hace falta instalar Java ni Node.
+
+```bash
+docker compose --profile completo up -d --build
+```
+
+La primera vez tarda varios minutos porque construye las imágenes. Cuando termine, el sistema queda en http://localhost:8090. Las siguientes veces basta con:
+
+```bash
+docker compose --profile completo up -d
+```
+
+Para el primer administrador, cree un archivo `.env` junto a `docker-compose.yml` (no se sube al repositorio):
+
+```
+SCHEDULER_ADMIN_CORREO=admin@unbosque.edu.co
+SCHEDULER_ADMIN_CONTRASENIA=una-contraseña-segura
+```
+
+Si el puerto 3306 está ocupado, agregue `SCHEDULER_DB_PUERTO=3307` al mismo archivo. El puerto web se cambia con `SCHEDULER_WEB_PUERTO`.
+
+Para apagarlo sin borrar datos:
+
+```bash
+docker compose --profile completo down
+```
+
+Después de actualizar el código, vuelva a construir con `--build`. Los datos se conservan en el volumen `mysql_data`; solo `docker compose down -v` los borra.
+
 ## Registro de administradores
 
 En la pantalla de ingreso, el enlace "¿No tienes una cuenta de administrador?" abre el formulario de registro. Solo acepta correos `@unbosque.edu.co` (se cambia con `SCHEDULER_REGISTRO_DOMINIO`). Si se define `SCHEDULER_REGISTRO_CODIGO`, el formulario pide ese código para crear la cuenta; sin él, cualquiera con un correo institucional puede registrarse como administrador.

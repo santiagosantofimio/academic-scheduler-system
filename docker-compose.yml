@@ -34,5 +34,39 @@ services:
       mysql:
         condition: service_healthy
 
+  backend:
+    build: ./backend
+    container_name: scheduler-backend
+    restart: unless-stopped
+    profiles: ["completo"]
+    environment:
+      SCHEDULER_DB_URL: jdbc:mysql://mysql:3306/scheduler
+      SCHEDULER_DB_USUARIO: scheduler
+      SCHEDULER_DB_CONTRASENIA: scheduler
+      SCHEDULER_ADMIN_CORREO: ${SCHEDULER_ADMIN_CORREO:-}
+      SCHEDULER_ADMIN_CONTRASENIA: ${SCHEDULER_ADMIN_CONTRASENIA:-}
+      SCHEDULER_REGISTRO_CODIGO: ${SCHEDULER_REGISTRO_CODIGO:-}
+      TZ: America/Bogota
+    depends_on:
+      mysql:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/8080 && printf \"GET /actuator/health HTTP/1.0\\r\\n\\r\\n\" >&3 && grep -q UP <&3'"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+
+  frontend:
+    build: ./frontend
+    container_name: scheduler-frontend
+    restart: unless-stopped
+    profiles: ["completo"]
+    ports:
+      - "${SCHEDULER_WEB_PUERTO:-8090}:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+
 volumes:
   mysql_data:
